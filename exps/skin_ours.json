@@ -1,5 +1,5 @@
 {
-    "prefix": "no_kd_orth_all_spec_lora",
+    "prefix": "no_kd_orth_all_general_lora_all_msa",
     "dataset": "SKIN",
     "task_name": ["PH2", "MSK", "clinic_D7P", "derm_D7P", "HAM", "BCN", "OTHERS", "clinical", "dermoscopic"],
     "increment_per_session": [2,3,6,6,8,8,8,11,11],  
@@ -41,7 +41,7 @@
     "msa_adapt": true,
     "use_distillation": true,
     "use_block_weight": true,
-    "msa":[1,0,1],
-    "general_pos":[],
-    "specfic_pos": [0,1,2,3,4,5,6,7,8,9,10,11]
+    "msa":[1,1,1],
+    "general_pos":[0,1,2,3,4,5,6,7,8,9,10,11],
+    "specfic_pos": []
 }

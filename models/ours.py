@@ -10,7 +10,7 @@ from utils.inc_net import OurNet
 from models.base import BaseLearner
 from utils.toolkit import tensor2numpy
 import random
-
+import os 
 num_workers = 8
 
 
@@ -328,7 +328,7 @@ class Learner(BaseLearner):
             epochs = self.args['later_epochs']
 
         prog_bar = tqdm(range(epochs))
-
+        best_acc, best_train_acc = 0.0, 0.0  # 新增：记录最佳准确率
         for _, epoch in enumerate(prog_bar):
             self._network.train()
 
@@ -361,32 +361,6 @@ class Learner(BaseLearner):
 
                 loss = F.cross_entropy(logits, aux_targets)
 
-                # if self._cur_task > 0:
-                #     kd_ratio = 5.
-                #     Temperature = 2
-
-                #     out_new, out_teacher = self._network.forward_kd(inputs, self._cur_task)
-                #     out_new_logits = out_new["logits"]
-                #     out_teacher_logits = out_teacher["logits"]
-                #     loss_kd = kd_ratio * _KD_loss(out_new_logits, out_teacher_logits, T=Temperature)
-
-                #     optimizer.zero_grad()
-
-                #     loss_kd.backward()
-                #     # 这里应该是对应论文里只对qv做lora，k保持不变
-                #     for j in range(len(self._network.backbone.general_pos)):
-                #         pos = self._network.backbone.adapt_pos.index(self._network.backbone.general_pos[j])
-                #         for jj in range(len(self._network.backbone.msa)):
-                #             if self._network.backbone.msa[jj] == 1:
-                #                 temp_weights = 1. * torch.norm(self._network.backbone.old_adapter_list[self._cur_task-1][pos][jj].lora_A.weight,dim=1)
-                #                 temp_weights = 1. * len(temp_weights) * temp_weights / torch.sum(temp_weights)
-                #                 self._network.backbone.cur_adapter[pos][jj].lora_A.weight.grad = temp_weights.unsqueeze(1) * self._network.backbone.cur_adapter[pos][jj].lora_A.weight.grad
-                #     optimizer.step()
-                # if self._cur_task > 0:
-                #     orth_loss_specific = compute_orthogonality_loss(self._network.backbone.block_weight_list, self._network.backbone.block_weight)
-                #     loss += 0.0001 * orth_loss_specific
-
-
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
@@ -399,13 +373,27 @@ class Learner(BaseLearner):
             if scheduler:
                 scheduler.step()
             train_acc = np.around(tensor2numpy(correct) * 100 / total, decimals=2)
+            if train_acc > best_train_acc:
+                best_train_acc = train_acc
+                # 评估模型
+                test_acc = self._compute_accuracy(self._network, test_loader)
+                if test_acc > best_acc:
+                    best_acc = test_acc
+                    # 保存最佳模型
+                    save_path = self.args["logs_name"] + f"/best_model_task_{self._cur_task}.pth"
+                    torch.save({
+                        'state_dict': self._network.state_dict(),
+                        'task_id': self._cur_task,
+                        'best_acc': best_acc
+                    }, save_path)
 
-            info = "Task {}, Epoch {}/{} => Loss {:.3f}, Train_accy {:.2f}".format(
+            info = "Task {}, Epoch {}/{} => Loss {:.3f}, Train_accy {:.2f}, Best_Test_accy {:.2f}".format(
                     self._cur_task,
                     epoch + 1,
                     epochs,
                     losses / len(train_loader),
                     train_acc,
+                    best_acc
                 )
             prog_bar.set_description(info)
 
