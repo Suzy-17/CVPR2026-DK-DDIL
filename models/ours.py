@@ -327,25 +327,26 @@ class Learner(BaseLearner):
         else:
             epochs = self.args['later_epochs']
 
+        if not self._network.backbone.msa_adapt:
+            for name, param in self._network.backbone.cur_adapter[0].named_parameters():
+                print(f"Parameter: {name}, Requires Gradient: {param.requires_grad}")
+        else:
+            for name, param in self._network.backbone.cur_adapter[0][1].named_parameters():
+                print(f"Parameter: {name}, Requires Gradient: {param.requires_grad}")
+            for name, param in self._network.backbone.cur_adapter[-1][1].named_parameters():
+                print(f"Parameter: {name}, Requires Gradient: {param.requires_grad}")
+            for name, param in self._network.backbone.cur_adapter[0][3].named_parameters():
+                print(f"Parameter: {name}, Requires Gradient: {param.requires_grad}")
+            for name, param in self._network.backbone.cur_adapter[-1][3].named_parameters():
+                print(f"Parameter: {name}, Requires Gradient: {param.requires_grad}")
+                
         prog_bar = tqdm(range(epochs))
-        best_acc, best_train_acc = 0.0, 0.0  # 新增：记录最佳准确率
+        best_acc, best_loss = 0.0, 100000.0  # 新增：记录最佳准确率
         for _, epoch in enumerate(prog_bar):
             self._network.train()
 
             losses = 0.0
             correct, total = 0, 0
-
-            if not self._network.backbone.msa_adapt:
-
-                for name, param in self._network.backbone.cur_adapter[0].named_parameters():
-                    print(f"Parameter: {name}, Requires Gradient: {param.requires_grad}")
-            else:
-                for name, param in self._network.backbone.cur_adapter[0][1].named_parameters():
-                    print(f"Parameter: {name}, Requires Gradient: {param.requires_grad}")
-                for name, param in self._network.backbone.cur_adapter[-1][1].named_parameters():
-                    print(f"Parameter: {name}, Requires Gradient: {param.requires_grad}")
-
-
             for i, (_, inputs, targets) in enumerate(train_loader):
                 inputs, targets = inputs.to(self._device), targets.to(self._device)
                 aux_targets = targets.clone()
@@ -373,19 +374,19 @@ class Learner(BaseLearner):
             if scheduler:
                 scheduler.step()
             train_acc = np.around(tensor2numpy(correct) * 100 / total, decimals=2)
-            if train_acc > best_train_acc:
-                best_train_acc = train_acc
+            if losses < best_loss:
+                best_loss = losses
                 # 评估模型
-                test_acc = self._compute_accuracy(self._network, test_loader)
-                if test_acc > best_acc:
-                    best_acc = test_acc
+                # test_acc = self._compute_accuracy(self._network, test_loader)
+                # if test_acc >= best_acc:
+                #     best_acc = test_acc
                     # 保存最佳模型
-                    save_path = self.args["logs_name"] + f"/best_model_task_{self._cur_task}.pth"
-                    torch.save({
-                        'state_dict': self._network.state_dict(),
-                        'task_id': self._cur_task,
-                        'best_acc': best_acc
-                    }, save_path)
+                save_path = self.args["logs_name"] + f"/best_model_task_{self._cur_task}.pth"
+                torch.save({
+                    'state_dict': self._network.state_dict(),
+                    'task_id': self._cur_task,
+                    'best_acc': best_acc
+                }, save_path)
 
             info = "Task {}, Epoch {}/{} => Loss {:.3f}, Train_accy {:.2f}, Best_Test_accy {:.2f}".format(
                     self._cur_task,
@@ -398,6 +399,8 @@ class Learner(BaseLearner):
             prog_bar.set_description(info)
 
             logging.info(info)
+            
+        self._network.load_state_dict(torch.load(save_path)['state_dict'])
 
 
     def _compute_accuracy(self, model, loader):

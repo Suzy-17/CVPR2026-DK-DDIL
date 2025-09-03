@@ -151,6 +151,7 @@ class Block(nn.Module):
         self.fc2 = nn.Linear(mlp_hidden_dim, dim)
         self.act = act_layer()
         self.mlp_drop = nn.Dropout(drop)
+        self.msa = config.msa
 
 
 
@@ -163,6 +164,8 @@ class Block(nn.Module):
             x = self.mlp_drop(self.act(self.fc1(self.norm2(x))))
             x = self.drop_path(self.mlp_drop(self.fc2(x)))
             x = residual + x
+            if self.msa[3] == 1:
+                x = self.mlp_drop(adapt[3](x))
         return x
 
 
@@ -340,15 +343,15 @@ class VisionTransformer(nn.Module):
                     temp_adapter.append(adapter)
                 self.cur_adapter[pos] = temp_adapter
 
-            if len(self.specfic_pos) < 12:
-                self.cur_adapter.requires_grad_(True)
+            # if len(self.specfic_pos) < 12:
+            #     self.cur_adapter.requires_grad_(True)
 
-                for i in self.adapt_pos:
-                    if i in self.general_pos:
-                        pos = self.adapt_pos.index(i)
-                        for j in range(len(self.msa)):
-                            if self.msa[j] == 1:
-                                self.cur_adapter[pos][j].lora_B.requires_grad_(False)
+            #     for i in self.adapt_pos:
+            #         if i in self.general_pos:
+            #             pos = self.adapt_pos.index(i)
+            #             for j in range(len(self.msa)):
+            #                 if self.msa[j] == 1:
+            #                     self.cur_adapter[pos][j].lora_B.requires_grad_(False)
         else:
             print("====Not use adapter===")
 
@@ -702,21 +705,21 @@ def vit_base_patch16_224_in21k_ours(pretrained=False, **kwargs):
             p.requires_grad = False
 
 
-    if not model.msa_adapt:
-        for adapter_temp in model.cur_adapter:
-            #for adapter in adapter_temp:
-            for param in adapter_temp.lora_B.parameters():
-                param.requires_grad = False
-    else:
-        for i in model.adapt_pos:
-            #if i in model.general_pos:
-            if i in model.general_pos:
-                pos = model.adapt_pos.index(i)
-                for j in range(len(model.msa)):
-                    if model.msa[j] == 1:
-                    #for adapter in adapter_temp:
-                        for param in model.cur_adapter[pos][j].lora_B.parameters():
-                            param.requires_grad = False
+    # if not model.msa_adapt:
+    #     for adapter_temp in model.cur_adapter:
+    #         #for adapter in adapter_temp:
+    #         for param in adapter_temp.lora_B.parameters():
+    #             param.requires_grad = False
+    # else:
+    #     for i in model.adapt_pos:
+    #         #if i in model.general_pos:
+    #         if i in model.general_pos:
+    #             pos = model.adapt_pos.index(i)
+    #             for j in range(len(model.msa)):
+    #                 if model.msa[j] == 1:
+    #                 #for adapter in adapter_temp:
+    #                     for param in model.cur_adapter[pos][j].lora_B.parameters():
+    #                         param.requires_grad = False
 
     return model
 
