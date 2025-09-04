@@ -262,7 +262,8 @@ def get_backbone(args, pretrained=False):
                 # VPT related
                 vpt_on=False,
                 vpt_num=0,
-                _device = args["device"][0]
+                _device = args["device"][0],
+                adaptive_rank = args["adaptive_rank"]
             )
             if name == "vit_base_patch16_224_ours":
                 model = vit_ours.vit_base_patch16_224_ours(num_classes=0,

@@ -9,7 +9,7 @@ import torch
 import torch.nn as nn
 from timm.models.vision_transformer import PatchEmbed
 # from timm.models.registry import register_model
-# import torch.nn.functional as F
+import torch.nn.functional as F
 import numpy as np
 # import logging
 # import os
@@ -20,48 +20,131 @@ import copy
 
 
 
+# class Adapter_lora(nn.Module):
+#     def __init__(self,
+#                  config=None,
+#                  d_model=None,
+#                  bottleneck=None,
+#                  dropout=0.0,
+#                  init_option="bert",
+#                  adapter_scalar="1.0",
+#                  adapter_layernorm_option="in"):
+#         super().__init__()
+#         self.random_orth = True
+
+#         self.n_embd = config.d_model if d_model is None else d_model
+#         self.down_size = config.attn_bn if bottleneck is None else bottleneck
+
+#         self.lora_A = nn.Linear(self.down_size, self.n_embd, bias=False)
+#         self.lora_B = nn.Linear(self.n_embd, self.down_size, bias=False)
+
+#         if self.random_orth:
+#             random_matrix = torch.rand(self.n_embd, self.down_size)
+#             q, r = torch.linalg.qr(random_matrix)
+#             with torch.no_grad():
+#                 self.lora_B.weight.copy_(q.T)
+#             scaling_factor = 1.  # You can adjust this value if needed
+#             self.lora_B.weight.data *= scaling_factor
+#         else:
+#             with torch.no_grad():
+#                 nn.init.kaiming_uniform_(self.lora_B.weight, a=math.sqrt(5))
+
+#         if init_option == "bert":
+#             raise NotImplementedError
+#         elif init_option == "lora":
+#             with torch.no_grad():
+#                 nn.init.zeros_(self.lora_A.weight)
+#         else:
+#             raise NotImplementedError
+
+#     def forward(self, x):
+#         inter_x = self.lora_B(x)
+#         out = self.lora_A(inter_x)
+#         return out
+
 class Adapter_lora(nn.Module):
-    def __init__(self,
+    def __init__(self, 
                  config=None,
                  d_model=None,
                  bottleneck=None,
                  dropout=0.0,
                  init_option="bert",
                  adapter_scalar="1.0",
-                 adapter_layernorm_option="in"):
+                 adapter_layernorm_option="in",
+                 max_rank: int = 64,
+                 min_rank: int = 4,
+                 init_scale: float = 0.02,
+                 reg_alpha: float = 0.1):
         super().__init__()
-        self.random_orth = True
-
         self.n_embd = config.d_model if d_model is None else d_model
-        self.down_size = config.attn_bn if bottleneck is None else bottleneck
+        self.max_rank = max_rank
+        self.min_rank = min_rank
+        
+        # 可学习参数
+        self.rank_scores = nn.Parameter(torch.ones(max_rank))
+        self.register_buffer('active_mask', torch.ones(max_rank, dtype=torch.bool))
+        
+        # 调整矩阵维度
+        self.lora_A = nn.Linear(max_rank, self.n_embd, bias=False)  # 原：self.n_embd -> max_rank
+        self.lora_B = nn.Linear(self.n_embd, max_rank, bias=False)  # 原：max_rank -> self.n_embd
+        
+        # 添加转置标记
+        self.register_buffer('requires_transpose', torch.BoolTensor([True]))
+        
+        # 正交初始化
+        nn.init.orthogonal_(self.lora_A.weight)
+        nn.init.normal_(self.lora_B.weight, std=init_scale)
+        
+        # 动态正则化参数
+        self.reg_alpha = reg_alpha
+        self.current_rank = max_rank
 
-        self.lora_A = nn.Linear(self.down_size, self.n_embd, bias=False)
-        self.lora_B = nn.Linear(self.n_embd, self.down_size, bias=False)
-
-        if self.random_orth:
-            random_matrix = torch.rand(self.n_embd, self.down_size)
-            q, r = torch.linalg.qr(random_matrix)
-            with torch.no_grad():
-                self.lora_B.weight.copy_(q.T)
-            scaling_factor = 1.  # You can adjust this value if needed
-            self.lora_B.weight.data *= scaling_factor
+    def get_active_components(self):
+        # 基于Gumbel-Softmax的秩选择
+        if self.training:
+            probs = torch.sigmoid(self.rank_scores)
+            samples = torch.rand_like(probs)
+            mask = (torch.log(probs) - torch.log(1 - probs) + \
+                   torch.log(samples) - torch.log(1 - samples)) > 0
         else:
-            with torch.no_grad():
-                nn.init.kaiming_uniform_(self.lora_B.weight, a=math.sqrt(5))
-
-        if init_option == "bert":
-            raise NotImplementedError
-        elif init_option == "lora":
-            with torch.no_grad():
-                nn.init.zeros_(self.lora_A.weight)
-        else:
-            raise NotImplementedError
+            mask = self.rank_scores > 0.5
+        
+        active_rank = torch.sum(mask).clamp(
+            min=self.min_rank,
+            max=min(self.max_rank, mask.shape[0])
+        )
+        return mask, active_rank
 
     def forward(self, x):
-        inter_x = self.lora_B(x)
-        out = self.lora_A(inter_x)
-        return out
+        mask, current_rank = self.get_active_components()
+        self.current_rank = current_rank
+        
+        # 矩阵运算修正 (第114-117行)
+        A = self.lora_A.weight[:, mask]  # [active_rank, n_embd]
+        B = self.lora_B.weight[mask, :]  # [n_embd, active_rank]
+        
+        # 添加维度校验断言 (第119-120行)
+        assert A.shape[0] == B.shape[1], \
+            f"激活秩不匹配 A:{A.shape[0]} vs B:{B.shape[1]}"
+        
+        # 高效计算 (x @ A) @ B
+        return x @ (A @ B)
 
+    def regularization_loss(self):
+        # 动态正则化系数
+        reg_coef = self.reg_alpha * (1 - self.current_rank/self.max_rank)
+        return reg_coef * torch.sum(torch.sigmoid(self.rank_scores))
+
+    @torch.no_grad()
+    def prune_parameters(self):
+        # 硬剪枝
+        self.active_mask = self.rank_scores > 0.5
+        self.lora_A.weight.data = self.lora_A.weight[:, self.active_mask]
+        self.lora_B.weight.data = self.lora_B.weight[self.active_mask, :]
+        
+        # 重置最大秩
+        self.max_rank = int(torch.sum(self.active_mask))
+        self.rank_scores = nn.Parameter(torch.ones(self.max_rank, device=self.rank_scores.device))
 
 class Attention_lora(nn.Module):
     def __init__(self, dim, num_heads=8, qkv_bias=False, attn_drop=0., proj_drop=0., msa = [0,0,0]):

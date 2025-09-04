@@ -9,6 +9,7 @@ from torch.utils.data import DataLoader
 from utils.inc_net import OurNet
 from models.base import BaseLearner
 from utils.toolkit import tensor2numpy
+from backbone.vit_ours import Adapter_lora
 import random
 import os 
 num_workers = 8
@@ -361,7 +362,16 @@ class Learner(BaseLearner):
                 logits = output["logits"]
 
                 loss = F.cross_entropy(logits, aux_targets)
-
+                # 替换原有稀疏性损失
+                lora_reg_loss = 0
+                for module in self._network.modules():
+                    if isinstance(module, Adapter_lora):
+                        lora_reg_loss += module.regularization_loss()
+                        # print(f"[{name}] active_rank: {module.current_rank}")
+                        # print(f"A shape: {module.lora_A.weight.shape}")
+                        # print(f"B shape: {module.lora_B.weight.shape}")
+                        
+                loss = loss + lora_reg_loss
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
@@ -370,7 +380,12 @@ class Learner(BaseLearner):
 
                 correct += preds.eq(aux_targets.expand_as(preds)).cpu().sum()
                 total += len(aux_targets)
-
+                # 在训练循环后添加剪枝
+            if epoch == epochs - 1:  # 最后一个epoch
+                with torch.no_grad():
+                    for module in self._network.modules():
+                        if isinstance(module, Adapter_lora):
+                            module.prune_parameters()
             if scheduler:
                 scheduler.step()
             train_acc = np.around(tensor2numpy(correct) * 100 / total, decimals=2)
