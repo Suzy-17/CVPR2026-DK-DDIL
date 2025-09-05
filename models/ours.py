@@ -317,106 +317,374 @@ class Learner(BaseLearner):
 
         return scheduler
 
-    def _init_train(self, train_loader, test_loader, optimizer, scheduler):
-        if self.moni_adam:
-            if self._cur_task > self.adapter_num - 1:
-                return
-        if self.task_increments:
-            self.inc = self.task_increments[self._cur_task]
-        if self._cur_task == 0 or self.init_cls == self.inc:
-            epochs = self.args['init_epochs']
-        else:
-            epochs = self.args['later_epochs']
+    # def _init_train(self, train_loader, test_loader, optimizer, scheduler):
+    #     if self.moni_adam:
+    #         if self._cur_task > self.adapter_num - 1:
+    #             return
+    #     if self.task_increments:
+    #         self.inc = self.task_increments[self._cur_task]
+    #     if self._cur_task == 0 or self.init_cls == self.inc:
+    #         epochs = self.args['init_epochs']
+    #     else:
+    #         epochs = self.args['later_epochs']
 
-        if not self._network.backbone.msa_adapt:
-            for name, param in self._network.backbone.cur_adapter[0].named_parameters():
-                print(f"Parameter: {name}, Requires Gradient: {param.requires_grad}")
-        else:
-            for name, param in self._network.backbone.cur_adapter[0][1].named_parameters():
-                print(f"Parameter: {name}, Requires Gradient: {param.requires_grad}")
-            for name, param in self._network.backbone.cur_adapter[-1][1].named_parameters():
-                print(f"Parameter: {name}, Requires Gradient: {param.requires_grad}")
-            for name, param in self._network.backbone.cur_adapter[0][3].named_parameters():
-                print(f"Parameter: {name}, Requires Gradient: {param.requires_grad}")
-            for name, param in self._network.backbone.cur_adapter[-1][3].named_parameters():
-                print(f"Parameter: {name}, Requires Gradient: {param.requires_grad}")
+    #     if not self._network.backbone.msa_adapt:
+    #         for name, param in self._network.backbone.cur_adapter[0].named_parameters():
+    #             print(f"Parameter: {name}, Requires Gradient: {param.requires_grad}")
+    #     else:
+    #         for name, param in self._network.backbone.cur_adapter[0][1].named_parameters():
+    #             print(f"Parameter: {name}, Requires Gradient: {param.requires_grad}")
+    #         for name, param in self._network.backbone.cur_adapter[-1][1].named_parameters():
+    #             print(f"Parameter: {name}, Requires Gradient: {param.requires_grad}")
                 
-        prog_bar = tqdm(range(epochs))
-        best_acc, best_loss = 0.0, 100000.0  # 新增：记录最佳准确率
-        for _, epoch in enumerate(prog_bar):
-            self._network.train()
+    #     prog_bar = tqdm(range(epochs))
+    #     best_acc, best_loss = 0.0, 100000.0  
+    #     for _, epoch in enumerate(prog_bar):
+    #         self._network.train()
 
-            losses = 0.0
-            correct, total = 0, 0
-            for i, (_, inputs, targets) in enumerate(train_loader):
-                inputs, targets = inputs.to(self._device), targets.to(self._device)
-                aux_targets = targets.clone()
+    #         losses = 0.0
+    #         correct, total = 0, 0
+    #         for i, (_, inputs, targets) in enumerate(train_loader):
+    #             inputs, targets = inputs.to(self._device), targets.to(self._device)
+    #             aux_targets = targets.clone()
 
-                aux_targets = torch.where(
-                    aux_targets - self._known_classes >= 0,
-                    aux_targets - self._known_classes,
-                    -1,
-                )
-                output = self._network(inputs, test=False)
+    #             aux_targets = torch.where(
+    #                 aux_targets - self._known_classes >= 0,
+    #                 aux_targets - self._known_classes,
+    #                 -1,
+    #             )
+    #             output = self._network(inputs, test=False)
 
-                logits = output["logits"]
+    #             logits = output["logits"]
+    #             loss = F.cross_entropy(logits, aux_targets)
+    #             reg_loss = sum([lora.regularization_loss() for lora in self._network.backbone.cur_adapter])
+    #             loss = loss + reg_loss
+                
+    #             # 反向传播前添加梯度裁剪
+    #             for lora in self._network.backbone.cur_adapter:
+    #                 lora.clip_gradients(max_norm=1.0)
+                
+    #             optimizer.zero_grad()
+    #             loss.backward()
+    #             optimizer.step()
+    #             losses += loss.item()
+    #             _, preds = torch.max(logits, dim=1)
 
-                loss = F.cross_entropy(logits, aux_targets)
-                # 替换原有稀疏性损失
-                lora_reg_loss = 0
-                for module in self._network.modules():
-                    if isinstance(module, Adapter_lora):
-                        lora_reg_loss += module.regularization_loss()
-                        # print(f"[{name}] active_rank: {module.current_rank}")
-                        # print(f"A shape: {module.lora_A.weight.shape}")
-                        # print(f"B shape: {module.lora_B.weight.shape}")
-                        
-                loss = loss + lora_reg_loss
-                optimizer.zero_grad()
-                loss.backward()
-                optimizer.step()
-                losses += loss.item()
-                _, preds = torch.max(logits, dim=1)
+    #             correct += preds.eq(aux_targets.expand_as(preds)).cpu().sum()
+    #             total += len(aux_targets)
+        
+    #         if scheduler:
+    #             scheduler.step()
+    #         train_acc = np.around(tensor2numpy(correct) * 100 / total, decimals=2)
+    #         if losses < best_loss:
+    #             best_loss = losses
+    #             best_acc = train_acc
+    #             save_path = self.args["logs_name"] + f"/best_model_task_{self._cur_task}.pth"
+    #             torch.save({
+    #                 'state_dict': self._network.state_dict(),
+    #                 'lora_ranks': [lora.current_rank for lora in self._network.backbone.cur_adapter],  # 保存当前秩
+    #                 'task_id': self._cur_task,
+    #                 'best_acc': best_acc
+    #             }, save_path)
 
-                correct += preds.eq(aux_targets.expand_as(preds)).cpu().sum()
-                total += len(aux_targets)
-                # 在训练循环后添加剪枝
-            if epoch == epochs - 1:  # 最后一个epoch
-                with torch.no_grad():
-                    for module in self._network.modules():
-                        if isinstance(module, Adapter_lora):
-                            module.prune_parameters()
-            if scheduler:
-                scheduler.step()
-            train_acc = np.around(tensor2numpy(correct) * 100 / total, decimals=2)
-            if losses < best_loss:
-                best_loss = losses
-                # 评估模型
-                # test_acc = self._compute_accuracy(self._network, test_loader)
-                # if test_acc >= best_acc:
-                #     best_acc = test_acc
-                    # 保存最佳模型
-                save_path = self.args["logs_name"] + f"/best_model_task_{self._cur_task}.pth"
-                torch.save({
-                    'state_dict': self._network.state_dict(),
-                    'task_id': self._cur_task,
-                    'best_acc': best_acc
-                }, save_path)
+    #         info = "Task {}, Epoch {}/{} => Loss {:.3f}, Train_accy {:.2f}, Best_accy {:.2f}".format(
+    #                 self._cur_task,
+    #                 epoch + 1,
+    #                 epochs,
+    #                 losses / len(train_loader),
+    #                 train_acc,
+    #                 best_acc
+    #             )
+    #         prog_bar.set_description(info)
 
-            info = "Task {}, Epoch {}/{} => Loss {:.3f}, Train_accy {:.2f}, Best_Test_accy {:.2f}".format(
-                    self._cur_task,
-                    epoch + 1,
-                    epochs,
-                    losses / len(train_loader),
+    #         logging.info(info)
+    #     checkpoint = torch.load(save_path)    
+    #     self._network.load_state_dict(checkpoint['state_dict'])
+    #     for lora, saved_rank in zip(self._network.backbone.cur_adapter, checkpoint['lora_ranks']):
+    #         lora.current_rank = saved_rank
+
+    def _init_train(self, train_loader, test_loader, optimizer, scheduler): 
+        if self.moni_adam: 
+            if self._cur_task > self.adapter_num - 1: 
+                return 
+        
+        if self.task_increments: 
+            self.inc = self.task_increments[self._cur_task] 
+        
+        if self._cur_task == 0 or self.init_cls == self.inc: 
+            epochs = self.args['init_epochs'] 
+        else: 
+            epochs = self.args['later_epochs'] 
+
+        # 修复：更安全的参数检查和LoRA组件访问
+        self._check_lora_parameters()
+        
+        # 在训练开始前初始化LoRA的有效秩
+        self._initialize_lora_ranks()
+        
+        prog_bar = tqdm(range(epochs)) 
+        best_acc, best_loss = 0.0, float('inf')
+        
+        # 添加早停机制相关变量
+        patience = getattr(self.args, 'patience', 10)
+        patience_counter = 0
+        
+        for epoch in range(epochs): 
+            self._network.train() 
+            
+            # 训练一个epoch
+            train_loss, train_acc = self._train_epoch(train_loader, optimizer)
+            
+            # 验证
+            # if test_loader is not None:
+            #     val_acc, val_loss = self._validate_epoch(test_loader)
+            # else:
+            #     val_acc, val_loss = train_acc, train_loss
+            
+            val_acc, val_loss = train_acc, train_loss
+                
+            # 学习率调整
+            if scheduler: 
+                if isinstance(scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
+                    scheduler.step(val_loss)
+                else:
+                    scheduler.step() 
+            
+            # 保存最佳模型
+            is_best = val_loss < best_loss
+            if is_best:
+                best_loss = val_loss
+                best_acc = val_acc
+                patience_counter = 0
+                self._save_best_model(epoch, val_acc, val_loss)
+            else:
+                patience_counter += 1
+            
+            # 更新进度条信息
+            info = ("Task {}, Epoch {}/{} => Train_Loss {:.3f}, Train_Acc {:.2f}%, "
+                    "Val_Loss {:.3f}, Val_Acc {:.2f}%, Best_Acc {:.2f}%, LR {:.2e}").format(
+                    self._cur_task, 
+                    epoch + 1, 
+                    epochs, 
+                    train_loss, 
                     train_acc,
-                    best_acc
-                )
+                    val_loss,
+                    val_acc,
+                    best_acc,
+                    optimizer.param_groups[0]['lr']
+                ) 
             prog_bar.set_description(info)
-
+            prog_bar.update(1)
             logging.info(info)
             
-        self._network.load_state_dict(torch.load(save_path)['state_dict'])
+            # 早停检查
+            if patience_counter >= patience:
+                logging.info(f"Early stopping at epoch {epoch + 1}")
+                break
+            
+            # # 定期进行LoRA剪枝（可选）
+            # if (epoch + 1) % getattr(self.args, 'prune_interval', 20) == 0:
+            #     self._prune_lora_adapters(epoch)
+        
+        prog_bar.close()
+        
+        # 加载最佳模型
+        self._load_best_model()
+        
+        # 训练结束后的LoRA统计
+        self._log_lora_statistics()
 
+    def _check_lora_parameters(self):
+        """检查LoRA参数的梯度状态"""
+        lora_adapters = self._get_lora_adapters()
+        
+        for i, lora in enumerate(lora_adapters):
+            print(f"\n=== LoRA Adapter {i} Parameters ===")
+            for name, param in lora.named_parameters():
+                print(f"Parameter: {name}, Shape: {param.shape}, Requires Gradient: {param.requires_grad}")
+                if hasattr(lora, 'get_effective_rank'):
+                    print(f"Effective Rank: {lora.get_effective_rank()}")
+
+    def _get_lora_adapters(self):
+        """获取所有LoRA适配器"""
+        adapters = []
+        
+        if not getattr(self._network.backbone, 'msa_adapt', False):
+            # 普通情况：每层一个adapter
+            if hasattr(self._network.backbone, 'cur_adapter'):
+                for adapter in self._network.backbone.cur_adapter:
+                    if hasattr(adapter, 'regularization_loss'):  # 确认是LoRA adapter
+                        adapters.append(adapter)
+        else:
+            # MSA适配情况：需要特殊处理
+            if hasattr(self._network.backbone, 'cur_adapter'):
+                for layer_adapters in self._network.backbone.cur_adapter:
+                    if isinstance(layer_adapters, (list, tuple, nn.ModuleList)):
+                        for adapter in layer_adapters:
+                            if hasattr(adapter, 'regularization_loss'):
+                                adapters.append(adapter)
+                    elif hasattr(layer_adapters, 'regularization_loss'):
+                        adapters.append(layer_adapters)
+        
+        return adapters
+
+    def _initialize_lora_ranks(self):
+        """初始化LoRA的有效秩"""
+        lora_adapters = self._get_lora_adapters()
+        for lora in lora_adapters:
+            if hasattr(lora, 'get_effective_rank'):
+                lora.current_rank = lora.get_effective_rank()
+
+    def _train_epoch(self, train_loader, optimizer):
+        """训练一个epoch"""
+        total_loss = 0.0
+        correct, total = 0, 0
+        lora_adapters = self._get_lora_adapters()
+        
+        for i, (_, inputs, targets) in enumerate(train_loader): 
+            inputs, targets = inputs.to(self._device), targets.to(self._device) 
+            
+            # 修复：目标标签处理
+            aux_targets = targets.clone() 
+            aux_targets = torch.where( 
+                aux_targets - self._known_classes >= 0, 
+                aux_targets - self._known_classes, 
+                -1, 
+            )
+            
+            # 过滤掉无效标签
+            valid_mask = aux_targets >= 0
+            if not valid_mask.any():
+                continue
+                
+            inputs = inputs[valid_mask]
+            aux_targets = aux_targets[valid_mask]
+            
+            # 前向传播
+            optimizer.zero_grad()
+            output = self._network(inputs, test=False) 
+            logits = output["logits"] 
+            
+            # 计算损失
+            ce_loss = F.cross_entropy(logits, aux_targets)
+            
+            # 添加LoRA正则化损失
+            reg_loss = torch.tensor(0.0, device=self._device)
+            for lora in lora_adapters:
+                if hasattr(lora, 'regularization_loss'):
+                    reg_loss += lora.regularization_loss()
+            
+            total_loss_batch = ce_loss + reg_loss
+            
+            # 反向传播
+            total_loss_batch.backward()
+            
+            # 梯度裁剪（在optimizer.step()之前）
+            for lora in lora_adapters:
+                if hasattr(lora, 'clip_gradients'):
+                    lora.clip_gradients(max_norm=1.0)
+            
+            # # 全局梯度裁剪（可选）
+            # if hasattr(self.args, 'max_grad_norm'):
+            #     torch.nn.utils.clip_grad_norm_(
+            #         self._network.parameters(), 
+            #         self.args['max_grad_norm']
+            #     )
+            
+            optimizer.step()
+            
+            # 统计
+            total_loss += total_loss_batch.item()
+            _, preds = torch.max(logits, dim=1) 
+            correct += preds.eq(aux_targets).cpu().sum().item()
+            total += len(aux_targets)
+        
+        avg_loss = total_loss / len(train_loader) if len(train_loader) > 0 else 0.0
+        avg_acc = 100.0 * correct / total if total > 0 else 0.0
+        
+        return avg_loss, avg_acc
+
+    def _save_best_model(self, epoch, acc, loss):
+        """保存最佳模型"""
+        lora_adapters = self._get_lora_adapters()
+        lora_stats = []
+        
+        for lora in lora_adapters:
+            stats = {
+                'current_rank': getattr(lora, 'current_rank', 0),
+                'effective_rank': lora.get_effective_rank() if hasattr(lora, 'get_effective_rank') else 0,
+                'max_rank': getattr(lora, 'max_rank', 0)
+            }
+            lora_stats.append(stats)
+        
+        save_path = self.args["logs_name"] + f"/best_model_task_{self._cur_task}.pth"
+        torch.save({
+            'state_dict': self._network.state_dict(),
+            'lora_stats': lora_stats,
+            'task_id': self._cur_task,
+            'epoch': epoch,
+            'best_acc': acc,
+            'best_loss': loss,
+            'optimizer_state': optimizer.state_dict() if hasattr(self, 'optimizer') else None
+        }, save_path)
+
+    def _load_best_model(self):
+        """加载最佳模型"""
+        save_path = self.args["logs_name"] + f"/best_model_task_{self._cur_task}.pth"
+        
+        try:
+            checkpoint = torch.load(save_path, map_location=self._device)
+            self._network.load_state_dict(checkpoint['state_dict'])
+            
+            # 恢复LoRA统计信息
+            if 'lora_stats' in checkpoint:
+                lora_adapters = self._get_lora_adapters()
+                for lora, stats in zip(lora_adapters, checkpoint['lora_stats']):
+                    lora.current_rank = stats.get('current_rank', lora.current_rank)
+                    
+            logging.info(f"Loaded best model from epoch {checkpoint.get('epoch', 'unknown')}")
+        except FileNotFoundError:
+            logging.warning(f"Best model file not found: {save_path}")
+
+    def _prune_lora_adapters(self, epoch):
+        """定期进行LoRA剪枝"""
+        if not getattr(self.args, 'enable_pruning', False):
+            return
+            
+        lora_adapters = self._get_lora_adapters()
+        for i, lora in enumerate(lora_adapters):
+            if hasattr(lora, 'prune_parameters'):
+                old_rank = getattr(lora, 'current_rank', 0)
+                lora.prune_parameters()
+                new_rank = getattr(lora, 'current_rank', 0)
+                if old_rank != new_rank:
+                    logging.info(f"LoRA {i} pruned: {old_rank} -> {new_rank} at epoch {epoch + 1}")
+
+    def _log_lora_statistics(self):
+        """记录LoRA统计信息"""
+        lora_adapters = self._get_lora_adapters()
+        
+        total_params = 0
+        active_params = 0
+        
+        for i, lora in enumerate(lora_adapters):
+            if hasattr(lora, 'get_effective_rank'):
+                effective_rank = lora.get_effective_rank()
+                max_rank = getattr(lora, 'max_rank', 0)
+                
+                lora_params = effective_rank * (lora.n_embd + lora.n_embd) if hasattr(lora, 'n_embd') else 0
+                max_params = max_rank * (lora.n_embd + lora.n_embd) if hasattr(lora, 'n_embd') else 0
+                
+                total_params += max_params
+                active_params += lora_params
+                
+                logging.info(f"LoRA {i}: Effective Rank {effective_rank}/{max_rank}, "
+                            f"Params {lora_params}/{max_params}")
+        
+        if total_params > 0:
+            compression_ratio = active_params / total_params
+            logging.info(f"Overall LoRA Compression: {compression_ratio:.3f} "
+                        f"({active_params}/{total_params} parameters)")
 
     def _compute_accuracy(self, model, loader):
         model.eval()

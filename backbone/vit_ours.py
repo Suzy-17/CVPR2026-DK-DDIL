@@ -62,89 +62,343 @@ import copy
 #         out = self.lora_A(inter_x)
 #         return out
 
-class Adapter_lora(nn.Module):
-    def __init__(self, 
-                 config=None,
-                 d_model=None,
-                 bottleneck=None,
-                 dropout=0.0,
-                 init_option="bert",
-                 adapter_scalar="1.0",
-                 adapter_layernorm_option="in",
-                 max_rank: int = 64,
-                 min_rank: int = 4,
-                 init_scale: float = 0.02,
-                 reg_alpha: float = 0.1):
-        super().__init__()
-        self.n_embd = config.d_model if d_model is None else d_model
-        self.max_rank = max_rank
-        self.min_rank = min_rank
+# class Adapter_lora(nn.Module):
+#     def __init__(self, 
+#                  config=None,
+#                  d_model=None,
+#                  bottleneck=None,
+#                  dropout=0.0,
+#                  init_option="bert",
+#                  adapter_scalar="1.0",
+#                  adapter_layernorm_option="in",
+#                  max_rank: int = 64,
+#                  min_rank: int = 4,
+#                  init_scale: float = 0.02,
+#                  temp: float = 0.5,
+#                  reg_alpha: float = 0.1):
+#         super().__init__()
+#         self.n_embd = config.d_model if d_model is None else d_model
+#         self.max_rank = max_rank
+#         self.min_rank = min_rank
+#         self.temp = temp
         
-        # 可学习参数
-        self.rank_scores = nn.Parameter(torch.ones(max_rank))
-        self.register_buffer('active_mask', torch.ones(max_rank, dtype=torch.bool))
+#         # 可学习参数
+#         self.rank_scores = nn.Parameter(torch.ones(max_rank))
+#         nn.init.normal_(self.rank_scores, mean=0.0, std=0.02)
+#         self.register_buffer('active_mask', torch.ones(max_rank, dtype=torch.bool))
         
-        # 调整矩阵维度
-        self.lora_A = nn.Linear(max_rank, self.n_embd, bias=False)  # 原：self.n_embd -> max_rank
-        self.lora_B = nn.Linear(self.n_embd, max_rank, bias=False)  # 原：max_rank -> self.n_embd
+#         # 调整矩阵维度定义
+#         self.lora_A = nn.Linear(self.n_embd, max_rank, bias=False)  # [n_embd, max_rank]
+#         self.lora_B = nn.Linear(max_rank, self.n_embd, bias=False)  # [max_rank, n_embd]
         
-        # 添加转置标记
-        self.register_buffer('requires_transpose', torch.BoolTensor([True]))
+#         # 正交初始化校验
+#         assert init_scale > 0, "初始化尺度必须为正数"
+#         nn.init.orthogonal_(self.lora_A.weight)
+#         nn.init.normal_(self.lora_B.weight, std=init_scale)
         
-        # 正交初始化
-        nn.init.orthogonal_(self.lora_A.weight)
-        nn.init.normal_(self.lora_B.weight, std=init_scale)
+#         # 动态正则化参数
+#         self.reg_alpha = reg_alpha
+#         self.current_rank = max_rank
+
+#     def get_active_components(self):
+#         # 带温度参数的Gumbel-Softmax
+#         if self.training:
+#             logits = self.rank_scores / self.temp
+#             probs = F.gumbel_softmax(logits, tau=self.temp, hard=False)
+#             mask = probs > 0.5
+#         else:
+#             mask = self.rank_scores > 0.5
         
-        # 动态正则化参数
-        self.reg_alpha = reg_alpha
+#         active_rank = torch.sum(mask).clamp(
+#             min=self.min_rank,
+#             max=min(self.max_rank, mask.shape[0])
+#         )
+#         return mask, active_rank
+
+#     def forward(self, x):
+#         mask, current_rank = self.get_active_components()
+#         self.current_rank = current_rank.item()
+        
+#         # 前向传播修正
+#         A = self.lora_A.weight[mask, :]  # [active_rank, n_embd]
+#         B = self.lora_B.weight[:, mask]  # [n_embd, active_rank]
+        
+#         # 维度校验断言
+#         assert A.shape[0] == B.shape[1], \
+#             f"激活秩不匹配 A:{A.shape[0]} vs B:{B.shape[1]}"
+        
+#         # 保持梯度流的矩阵运算
+#         return (x @ B) @ A.T  # 保持维度一致性
+
+#     def regularization_loss(self):
+#         # 对数缩放的正则化
+#         ratio = self.max_rank / max(1, self.current_rank)
+#         reg_coef = self.reg_alpha * torch.log(torch.tensor(ratio, device=self.rank_scores.device))
+
+#         return reg_coef * torch.sum(torch.sigmoid(self.rank_scores))
+
+#     @torch.no_grad()
+#     def prune_parameters(self):
+#         # 保持计算图的剪枝
+#         self.active_mask = self.rank_scores > 0.5
+#         new_A = nn.Parameter(self.lora_A.weight[:, self.active_mask])
+#         new_B = nn.Parameter(self.lora_B.weight[self.active_mask, :])
+        
+#         # 替换参数并重置
+#         self.lora_A = nn.Linear(self.n_embd, int(torch.sum(self.active_mask)), bias=False)
+#         self.lora_B = nn.Linear(int(torch.sum(self.active_mask)), self.n_embd, bias=False)
+#         self.lora_A.weight = new_A
+#         self.lora_B.weight = new_B
+        
+#         # 重置参数
+#         self.max_rank = int(torch.sum(self.active_mask))
+#         self.rank_scores = nn.Parameter(torch.ones(self.max_rank, device=self.rank_scores.device))
+        
+#     def clip_gradients(self, max_norm=1.0):
+#         # 梯度裁剪
+#         torch.nn.utils.clip_grad_norm_(self.rank_scores, max_norm)
+
+class Adapter_lora(nn.Module): 
+    def __init__(self,  
+                 config=None, 
+                 d_model=None, 
+                 bottleneck=None, 
+                 dropout=0.0, 
+                 init_option="bert", 
+                 adapter_scalar="1.0", 
+                 adapter_layernorm_option="in", 
+                 max_rank: int = 64, 
+                 min_rank: int = 4, 
+                 init_scale: float = 0.02, 
+                 temp: float = 2, 
+                 reg_alpha: float = 0.1,
+                 lora_alpha: float = 16.0): 
+        super().__init__() 
+        self.n_embd = config.d_model if d_model is None else d_model 
+        self.max_rank = max_rank 
+        self.min_rank = min_rank 
+        temp = max(float(temp), 1e-2)
+        self.temp = temp 
+        self.lora_alpha = lora_alpha  # LoRA缩放因子
+         
+        # 可学习参数 - 更保守的初始化
+        self.rank_scores = nn.Parameter(torch.ones(max_rank))  
+        with torch.no_grad():
+            self.rank_scores.data.normal_(mean=0.0, std=0.01)
+        # 然后添加小的随机扰动，确保有一些维度被激活
+        # with torch.no_grad():
+        #     # 让前min_rank个维度有更高的激活概率
+        #     self.rank_scores[:min_rank] += torch.randn(min_rank) * 0.5 + 1.0  # 更容易被激活
+        #     self.rank_scores[min_rank:] += torch.randn(max_rank - min_rank) * 0.2  # 其他维度小幅随机
+        self.register_buffer('active_mask', torch.ones(max_rank, dtype=torch.bool)) 
+         
+        # LoRA矩阵定义
+        self.lora_A = nn.Linear(self.n_embd, max_rank, bias=False)
+        self.lora_B = nn.Linear(max_rank, self.n_embd, bias=False)
+         
+        # 关键修复：正确的LoRA初始化 
+        assert init_scale > 0, "初始化尺度必须为正数" 
+        # nn.init.kaiming_uniform_(self.lora_A.weight, a=math.sqrt(5))
+        # nn.init.zeros_(self.lora_B.weight)  # LoRA标准做法：B初始化为零
+        # LoRA标准初始化：A用小方差高斯，B用零初始化
+        std_a = 1.0 / math.sqrt(max_rank)  # 根据输出维度调整
+        nn.init.normal_(self.lora_A.weight, mean=0.0, std=std_a)
+        nn.init.zeros_(self.lora_B.weight)  # B必须初始化为零
+         
+        # 动态正则化参数 
+        self.reg_alpha = reg_alpha 
         self.current_rank = max_rank
+        
+        # 添加dropout防止过拟合
+        self.lora_dropout = nn.Dropout(dropout) if dropout > 0 else nn.Identity()
 
-    def get_active_components(self):
-        # 基于Gumbel-Softmax的秩选择
-        if self.training:
-            probs = torch.sigmoid(self.rank_scores)
-            samples = torch.rand_like(probs)
-            mask = (torch.log(probs) - torch.log(1 - probs) + \
-                   torch.log(samples) - torch.log(1 - samples)) > 0
+    # def get_active_components(self): 
+    #     if self.training: 
+    #         # 使用更稳定的激活函数
+    #         logits = self.rank_scores / max(self.temp, 0.1)  # 避免温度过小
+    #         soft_mask = torch.sigmoid(logits)
+    #         hard_mask = (soft_mask > 0.5).float()
+    #         # 正确的Straight-through trick
+    #         mask = hard_mask.detach() + soft_mask - soft_mask.detach()
+    #         active_indices = (hard_mask > 0.5)
+    #     else: 
+    #         active_indices = (torch.sigmoid(self.rank_scores) > 0.5)
+    #         mask = active_indices.float()
+         
+    #     active_rank = torch.sum(active_indices).clamp(
+    #         min=self.min_rank, 
+    #         max=self.max_rank
+    #     )
+        
+    #     if active_rank < self.min_rank:
+    #         _, top_indices = torch.topk(self.rank_scores, self.min_rank)
+    #         new_mask = torch.zeros_like(soft_mask if self.training else mask)
+    #         new_mask[top_indices] = 1.0
+    #         if self.training:
+    #             mask = new_mask.detach() + soft_mask - soft_mask.detach()
+    #         else:
+    #             mask = new_mask
+    #         active_indices = top_indices
+            
+    #     return mask, active_indices, active_rank 
+
+    def get_active_components(self): 
+        """获取激活的组件，确保mask和active_indices完全一致"""
+        if self.training: 
+            # 使用straight-through estimator避免梯度问题
+            logits = self.rank_scores / self.temp 
+            soft_mask = torch.sigmoid(logits)
+            hard_mask = (soft_mask > 0.5).float()
+            # 正确的Straight-through trick: forward用hard，backward用soft
+            base_mask = hard_mask.detach() + soft_mask - soft_mask.detach()
+            base_active_indices = (hard_mask > 0.5)
+        else: 
+            sigmoid_scores = torch.sigmoid(self.rank_scores)
+            base_active_indices = (sigmoid_scores > 0.5)
+            base_mask = base_active_indices.float()
+         
+        # 计算当前激活的秩
+        current_active_count = torch.sum(base_active_indices).item()
+        
+        # 关键修复：如果激活太少，需要同时更新mask和active_indices
+        if current_active_count < self.min_rank:
+            # 选择top-k个最高分数的维度
+            _, top_indices = torch.topk(self.rank_scores, self.min_rank)
+            
+            # 创建新的active_indices（布尔张量）
+            final_active_indices = torch.zeros_like(base_active_indices, dtype=torch.bool)
+            final_active_indices[top_indices] = True
+            
+            if self.training:
+                # 训练时：为top-k维度创建新的mask
+                final_mask = torch.zeros_like(base_mask)
+                for idx_t in top_indices:
+                    idx = int(idx_t.item())
+                    final_mask[idx] = 1.0 - soft_mask[idx].detach() + soft_mask[idx]
+            else:
+                # 推理时：直接使用hard mask
+                final_mask = final_active_indices.float()
+            
+            final_active_count = self.min_rank
         else:
-            mask = self.rank_scores > 0.5
+            # 如果激活数量足够，直接使用base结果
+            final_mask = base_mask
+            final_active_indices = base_active_indices
+            final_active_count = current_active_count
         
-        active_rank = torch.sum(mask).clamp(
-            min=self.min_rank,
-            max=min(self.max_rank, mask.shape[0])
-        )
-        return mask, active_rank
+        # 确保active_rank在合理范围内
+        final_active_rank = min(final_active_count, self.max_rank)
+        
+        # 验证一致性（调试用，可以删除）
+        assert torch.sum(final_active_indices).item() == final_active_rank, \
+            f"Inconsistency: active_indices sum {torch.sum(final_active_indices).item()} != active_rank {final_active_rank}"
+        
+        return final_mask, final_active_indices, torch.tensor(final_active_rank, device=self.rank_scores.device)
 
-    def forward(self, x):
-        mask, current_rank = self.get_active_components()
-        self.current_rank = current_rank
+    def forward(self, x): 
+        if x.dim() != 3:
+            raise ValueError(f"Expected 3D input (batch, seq, features), got {x.dim()}D")
+            
+        mask, active_indices, current_rank = self.get_active_components()
+        self.current_rank = current_rank.item()
         
-        # 矩阵运算修正 (第114-117行)
-        A = self.lora_A.weight[:, mask]  # [active_rank, n_embd]
-        B = self.lora_B.weight[mask, :]  # [n_embd, active_rank]
+        # 动态缩放因子
+        if self.current_rank > 0:
+            dynamic_scaling = self.lora_alpha / self.max_rank
+        else:
+            return torch.zeros_like(x)
+         
+        if self.training:
+            # 训练时使用mask加权
+            A_weighted = self.lora_A.weight * mask.unsqueeze(1)
+            B_weighted = self.lora_B.weight * mask.unsqueeze(0)
+            
+            # 添加dropout
+            x_dropout = self.lora_dropout(x)
+            x_dropout = F.normalize(x_dropout, p=2, dim=1)
+            A_weighted = F.normalize(A_weighted, p=2, dim=1)
+            B_weighted = F.normalize(B_weighted, p=2, dim=1)
+            hidden = F.linear(x_dropout, A_weighted)
+            output = F.linear(hidden, B_weighted)     # [batch, seq, n_embd]
+            # 矩阵运算：x @ A.T @ B
+            
+            # hidden = torch.matmul(x_dropout, A_weighted.t())  # [batch, seq, max_rank]
+            # output = torch.matmul(hidden, B_weighted.t())     # [batch, seq, n_embd]
+        else:
+            # 推理时只使用激活的维度
+            if active_indices.any():
+                A_active = self.lora_A.weight[active_indices, :]
+                B_active = self.lora_B.weight[:, active_indices]
+                
+                # hidden = torch.matmul(x, A_active.t())
+                # output = torch.matmul(hidden, B_active.t())
+                x = F.normalize(x, p=2, dim=1)
+                A_active = F.normalize(A_active, p=2, dim=1)
+                B_active = F.normalize(B_active, p=2, dim=1)
+                hidden = F.linear(x, A_active)
+                output = F.linear(hidden, B_active)
+            else:
+                output = torch.zeros_like(x)
         
-        # 添加维度校验断言 (第119-120行)
-        assert A.shape[0] == B.shape[1], \
-            f"激活秩不匹配 A:{A.shape[0]} vs B:{B.shape[1]}"
+        # 应用缩放因子
+        return output * dynamic_scaling
+ 
+    def regularization_loss(self): 
+        if self.current_rank <= 0:
+            return torch.tensor(0.0, device=self.rank_scores.device)
+            
+        # # L1正则化鼓励稀疏性
+        # sparsity_loss = torch.sum(torch.sigmoid(self.rank_scores)) / self.max_rank
+        # return self.reg_alpha * sparsity_loss
+        # 使用sigmoid激活的和作为复杂度惩罚
+        active_ratio = torch.sum(torch.sigmoid(self.rank_scores)) / self.max_rank
+        reg_loss = self.reg_alpha * active_ratio
+        return reg_loss
+ 
+    @torch.no_grad() 
+    def prune_parameters(self): 
+        # 修复：安全的参数剪枝
+        sigmoid_scores = torch.sigmoid(self.rank_scores)
+        self.active_mask = sigmoid_scores > 0.5 
+        active_count = torch.sum(self.active_mask).item()
         
-        # 高效计算 (x @ A) @ B
-        return x @ (A @ B)
-
-    def regularization_loss(self):
-        # 动态正则化系数
-        reg_coef = self.reg_alpha * (1 - self.current_rank/self.max_rank)
-        return reg_coef * torch.sum(torch.sigmoid(self.rank_scores))
-
-    @torch.no_grad()
-    def prune_parameters(self):
-        # 硬剪枝
-        self.active_mask = self.rank_scores > 0.5
-        self.lora_A.weight.data = self.lora_A.weight[:, self.active_mask]
-        self.lora_B.weight.data = self.lora_B.weight[self.active_mask, :]
+        if active_count < self.min_rank:
+            # 如果激活太少，选择top-k
+            _, top_indices = torch.topk(sigmoid_scores, self.min_rank)
+            self.active_mask.zero_()
+            self.active_mask[top_indices] = True
+            active_count = self.min_rank
+            
+        if active_count == 0:
+            print("警告：没有激活的维度，跳过剪枝")
+            return
+            
+        # 创建新的线性层
+        new_lora_A = nn.Linear(self.n_embd, active_count, bias=False).to(self.lora_A.weight.device)
+        new_lora_B = nn.Linear(active_count, self.n_embd, bias=False).to(self.lora_B.weight.device)
         
-        # 重置最大秩
-        self.max_rank = int(torch.sum(self.active_mask))
+        # 复制激活的权重
+        new_lora_A.weight.data = self.lora_A.weight[self.active_mask, :].clone()
+        new_lora_B.weight.data = self.lora_B.weight[:, self.active_mask].clone()
+        
+        # 替换模块
+        self.lora_A = new_lora_A
+        self.lora_B = new_lora_B
+         
+        # 更新参数
+        self.max_rank = active_count
         self.rank_scores = nn.Parameter(torch.ones(self.max_rank, device=self.rank_scores.device))
+        self.register_buffer('active_mask', torch.ones(self.max_rank, dtype=torch.bool))
+         
+    def clip_gradients(self, max_norm=1.0): 
+        # 梯度裁剪 
+        if self.rank_scores.grad is not None:
+            torch.nn.utils.clip_grad_norm_(self.rank_scores, max_norm)
+            
+    def get_effective_rank(self):
+        """获取当前有效秩"""
+        with torch.no_grad():
+            return torch.sum(torch.sigmoid(self.rank_scores) > 0.5).item()
 
 class Attention_lora(nn.Module):
     def __init__(self, dim, num_heads=8, qkv_bias=False, attn_drop=0., proj_drop=0., msa = [0,0,0]):
@@ -247,8 +501,10 @@ class Block(nn.Module):
             x = self.mlp_drop(self.act(self.fc1(self.norm2(x))))
             x = self.drop_path(self.mlp_drop(self.fc2(x)))
             x = residual + x
+            residual = x
             if self.msa[3] == 1:
                 x = self.mlp_drop(adapt[3](x))
+            x = residual + x
         return x
 
 

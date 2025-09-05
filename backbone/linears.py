@@ -307,14 +307,16 @@ class CosineLinearFeature(nn.Module):
             else:
                 start_cls = init_cls + (i - 1) * inc
                 end_cls = start_cls + inc
-            input1 = F.normalize(input[:, i * out_dim:(i + 1) * out_dim], p=2, dim=1)
-            weight1 = F.normalize(self.weight[start_cls:end_cls, i * out_dim:(i + 1) * out_dim], p=2, dim=1)
-
-            out = F.linear(input1, weight1)
-            if i == 0:
-                out_all = out
-            else:
-                out_all = torch.cat((out_all, out), dim=1) if i != 0 else out
+            # input1 = F.normalize(input[:, i * out_dim:(i + 1) * out_dim], p=2, dim=1)
+            # weight1 = F.normalize(self.weight[start_cls:end_cls, i * out_dim:(i + 1) * out_dim], p=2, dim=1)
+            input2 = F.normalize(input, p=2, dim=1)
+            weight2 = F.normalize(self.weight, p=2, dim=1)
+            out_all = F.linear(input2, weight2)
+            # out = F.linear(input1, weight1)
+            # if i == 0:
+            #     out_all = out
+            # else:
+            #     out_all = torch.cat((out_all, out), dim=1) if i != 0 else out
 
         if self.to_reduce:
             # Reduce_proxy
