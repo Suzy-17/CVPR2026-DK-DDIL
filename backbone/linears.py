@@ -300,6 +300,9 @@ class CosineLinearFeature(nn.Module):
 
 
     def forward_diagonal(self, input, cur_task, alpha=0., beta=0.0, init_cls=10, inc=10, out_dim=768, use_init_ptm=False):
+        # input2 = F.normalize(input, p=2, dim=1)
+        # weight2 = F.normalize(self.weight, p=2, dim=1)
+        # out_all = F.linear(input2, weight2)
         for i in range(cur_task + 1):
             if i == 0:
                 start_cls = 0
@@ -307,16 +310,14 @@ class CosineLinearFeature(nn.Module):
             else:
                 start_cls = init_cls + (i - 1) * inc
                 end_cls = start_cls + inc
-            # input1 = F.normalize(input[:, i * out_dim:(i + 1) * out_dim], p=2, dim=1)
-            # weight1 = F.normalize(self.weight[start_cls:end_cls, i * out_dim:(i + 1) * out_dim], p=2, dim=1)
-            input2 = F.normalize(input, p=2, dim=1)
-            weight2 = F.normalize(self.weight, p=2, dim=1)
-            out_all = F.linear(input2, weight2)
-            # out = F.linear(input1, weight1)
-            # if i == 0:
-            #     out_all = out
-            # else:
-            #     out_all = torch.cat((out_all, out), dim=1) if i != 0 else out
+            input1 = F.normalize(input[:, i * out_dim:(i + 1) * out_dim], p=2, dim=1)
+            weight1 = F.normalize(self.weight[start_cls:end_cls, i * out_dim:(i + 1) * out_dim], p=2, dim=1)
+            
+            out = F.linear(input1, weight1)
+            if i == 0:
+                out_all = out
+            else:
+                out_all = torch.cat((out_all, out), dim=1) if i != 0 else out
 
         if self.to_reduce:
             # Reduce_proxy

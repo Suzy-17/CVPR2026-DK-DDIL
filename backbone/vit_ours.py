@@ -198,12 +198,12 @@ class Adapter_lora(nn.Module):
          
         # 关键修复：正确的LoRA初始化 
         assert init_scale > 0, "初始化尺度必须为正数" 
-        # nn.init.kaiming_uniform_(self.lora_A.weight, a=math.sqrt(5))
-        # nn.init.zeros_(self.lora_B.weight)  # LoRA标准做法：B初始化为零
-        # LoRA标准初始化：A用小方差高斯，B用零初始化
-        std_a = 1.0 / math.sqrt(max_rank)  # 根据输出维度调整
-        nn.init.normal_(self.lora_A.weight, mean=0.0, std=std_a)
-        nn.init.zeros_(self.lora_B.weight)  # B必须初始化为零
+        nn.init.kaiming_uniform_(self.lora_A.weight, a=math.sqrt(5))
+        nn.init.zeros_(self.lora_B.weight)  # LoRA标准做法：B初始化为零
+        # # LoRA标准初始化：A用小方差高斯，B用零初始化
+        # std_a = 1.0 / math.sqrt(max_rank)  # 根据输出维度调整
+        # nn.init.normal_(self.lora_A.weight, mean=0.0, std=std_a)
+        # nn.init.zeros_(self.lora_B.weight)  # B必须初始化为零
          
         # 动态正则化参数 
         self.reg_alpha = reg_alpha 
@@ -830,6 +830,15 @@ class VisionTransformer(nn.Module):
     def forward(self, x, test=False, use_init_ptm=False):
         if not test:
             output = self.forward_train(x)
+            with torch.no_grad():
+                pre_output = self.forward_test(x, use_init_ptm)
+                outputs = torch.Tensor().to(pre_output[0].device)
+                for x in pre_output:
+                    cls = x[:, 0, :]
+                    outputs = torch.cat((
+                        outputs,
+                        cls
+                    ), dim=1)
             return output
 
         else:

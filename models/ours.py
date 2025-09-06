@@ -8,7 +8,7 @@ from torch.nn import functional as F
 from torch.utils.data import DataLoader
 from utils.inc_net import OurNet
 from models.base import BaseLearner
-from utils.toolkit import tensor2numpy
+from utils.toolkit import tensor2numpy, DomainContrastiveLoss
 from backbone.vit_ours import Adapter_lora
 import random
 import os 
@@ -62,10 +62,11 @@ class Learner(BaseLearner):
         self.recalc_sim = args["recalc_sim"]
         self.alpha = args["alpha"] # forward_reweight is divide by _cur_task
         self.beta = args["beta"]
+        self.class_proto = torch.tensor([]).to(self._device)
 
         self.moni_adam = args["moni_adam"]
         self.adapter_num = args["adapter_num"]
-
+        self.anti_prototype_loss = DomainContrastiveLoss()
         if self.moni_adam:
             self.use_init_ptm = True
             self.alpha = 1
@@ -126,10 +127,12 @@ class Learner(BaseLearner):
                 label_list = torch.cat(label_list, dim=0)
 
                 class_list = np.unique(self.train_dataset_for_protonet.labels)
+                # model.fc.weight.data[self._known_classes:self._total_classes, index*self._network.out_dim:(index+1)*self._network.out_dim] = self._network.fc_list[-1].weight.data
                 for class_index in class_list:
                     data_index = (label_list == class_index).nonzero().squeeze(-1)
                     embedding = embedding_list[data_index]
                     proto = embedding.mean(0)
+                    self.class_proto = torch.cat((self.class_proto, proto.unsqueeze(0).to(self._device)), dim=0)
                     if self.use_init_ptm:
                         model.fc.weight.data[class_index, (index+1)*self._network.out_dim:(index+2)*self._network.out_dim] = proto
                     else:
@@ -246,6 +249,9 @@ class Learner(BaseLearner):
         self.data_manager = data_manager
         self.train_dataset = data_manager.get_dataset(np.arange(self._known_classes, self._total_classes), source="train", mode="train", )
         self.train_loader = DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=True, num_workers=num_workers)
+        
+        self.test_dataset_for_cur_task = data_manager.get_dataset(np.arange(self._known_classes, self._total_classes), source="test", mode="test", )
+        self.test_loader_for_cur_task = DataLoader(self.test_dataset_for_cur_task, batch_size=self.batch_size, shuffle=True, num_workers=num_workers)
 
         self.test_dataset = data_manager.get_dataset(np.arange(0, self._total_classes), source="test", mode="test" )
         self.test_loader = DataLoader(self.test_dataset, batch_size=self.batch_size, shuffle=False, num_workers=num_workers)
@@ -256,7 +262,7 @@ class Learner(BaseLearner):
         if len(self._multiple_gpus) > 1:
             print('Multiple GPUs')
             self._network = nn.DataParallel(self._network, self._multiple_gpus)
-        self._train(self.train_loader, self.test_loader)
+        self._train(self.train_loader, self.test_loader_for_cur_task)
         if len(self._multiple_gpus) > 1:
             self._network = self._network.module
         self._network.add_fc()
@@ -433,9 +439,9 @@ class Learner(BaseLearner):
             self._network.train() 
             
             # 训练一个epoch
-            train_loss, train_acc = self._train_epoch(train_loader, optimizer)
+            train_loss, train_acc = self._train_epoch(train_loader, optimizer, epoch)
             
-            # 验证
+            # # 验证
             # if test_loader is not None:
             #     val_acc, val_loss = self._validate_epoch(test_loader)
             # else:
@@ -482,9 +488,9 @@ class Learner(BaseLearner):
                 logging.info(f"Early stopping at epoch {epoch + 1}")
                 break
             
-            # # 定期进行LoRA剪枝（可选）
-            # if (epoch + 1) % getattr(self.args, 'prune_interval', 20) == 0:
-            #     self._prune_lora_adapters(epoch)
+            # 定期进行LoRA剪枝（可选）
+            if (epoch + 1) % getattr(self.args, 'prune_interval', 20) == 0:
+                self._prune_lora_adapters(epoch)
         
         prog_bar.close()
         
@@ -535,12 +541,13 @@ class Learner(BaseLearner):
             if hasattr(lora, 'get_effective_rank'):
                 lora.current_rank = lora.get_effective_rank()
 
-    def _train_epoch(self, train_loader, optimizer):
+    def _train_epoch(self, train_loader, optimizer, epoch_index):
         """训练一个epoch"""
         total_loss = 0.0
         correct, total = 0, 0
         lora_adapters = self._get_lora_adapters()
-        
+        cur_class_proto = torch.zeros((self.inc, 768)).to(self._device)
+        cur_class_nums = torch.ones((self.inc)).to(self._device)
         for i, (_, inputs, targets) in enumerate(train_loader): 
             inputs, targets = inputs.to(self._device), targets.to(self._device) 
             
@@ -567,14 +574,18 @@ class Learner(BaseLearner):
             
             # 计算损失
             ce_loss = F.cross_entropy(logits, aux_targets)
-            
+            # 计算anti-prototype loss
+            if epoch_index > 15:
+                anti_prototype_loss = self.anti_prototype_loss(output['features'], aux_targets, cur_class_proto/cur_class_nums.unsqueeze(-1), self.class_proto)[0]
+            else:
+                anti_prototype_loss = self.anti_prototype_loss(output['features'], None, None, self.class_proto)[0]
             # 添加LoRA正则化损失
             reg_loss = torch.tensor(0.0, device=self._device)
             for lora in lora_adapters:
                 if hasattr(lora, 'regularization_loss'):
                     reg_loss += lora.regularization_loss()
             
-            total_loss_batch = ce_loss + reg_loss
+            total_loss_batch = ce_loss + reg_loss + anti_prototype_loss # ce_loss + 
             
             # 反向传播
             total_loss_batch.backward()
@@ -592,7 +603,12 @@ class Learner(BaseLearner):
             #     )
             
             optimizer.step()
-            
+            with torch.no_grad():
+                for c in aux_targets.unique():
+                    mask = (aux_targets == c)
+                    if mask.any():
+                        cur_class_proto[c] += output['features'][mask].sum(dim=0)
+                        cur_class_nums[c] += mask.sum().item()
             # 统计
             total_loss += total_loss_batch.item()
             _, preds = torch.max(logits, dim=1) 
@@ -686,6 +702,46 @@ class Learner(BaseLearner):
             logging.info(f"Overall LoRA Compression: {compression_ratio:.3f} "
                         f"({active_params}/{total_params} parameters)")
 
+    def _validate_epoch(self, test_loader):
+        """验证一个epoch"""
+        self._network.eval()
+        total_loss = 0.0
+        correct, total = 0, 0
+        
+        with torch.no_grad():
+            for _, inputs, targets in test_loader:
+                inputs, targets = inputs.to(self._device), targets.to(self._device)
+                
+                # 处理目标标签
+                aux_targets = targets.clone()
+                aux_targets = torch.where(
+                    aux_targets - self._known_classes >= 0,
+                    aux_targets - self._known_classes,
+                    -1,
+                )
+                
+                valid_mask = aux_targets >= 0
+                if not valid_mask.any():
+                    continue
+                    
+                inputs = inputs[valid_mask]
+                aux_targets = aux_targets[valid_mask]
+                
+                output = self._network(inputs, test=False)
+                logits = output["logits"]
+                
+                loss = F.cross_entropy(logits, aux_targets)
+                total_loss += loss.item()
+                
+                _, preds = torch.max(logits, dim=1)
+                correct += preds.eq(aux_targets).cpu().sum().item()
+                total += len(aux_targets)
+        
+        avg_loss = total_loss / len(test_loader) if len(test_loader) > 0 else 0.0
+        avg_acc = 100.0 * correct / total if total > 0 else 0.0
+        
+        return avg_acc, avg_loss
+    
     def _compute_accuracy(self, model, loader):
         model.eval()
         correct, total = 0, 0

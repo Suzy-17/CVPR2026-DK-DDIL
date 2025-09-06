@@ -1,7 +1,73 @@
 import os
 import numpy as np
 import torch
+import torch.nn as nn
+import torch.nn.functional as F
 
+class DomainContrastiveLoss(nn.Module):
+    def __init__(self, margin=0.5, alpha=1.0, beta=1.0):
+        """
+        域增量学习的正负对比损失 (自适应版本)
+        Args:
+            margin: 负约束的最小余弦距离 (0-1)
+            alpha: 正对齐损失权重
+            beta: 负分离损失权重
+        """
+        super().__init__()
+        self.margin = margin
+        self.alpha = alpha
+        self.beta = beta
+
+    def forward(self, features, labels=None, cur_proto=None, prev_proto=None):
+        """
+        Args:
+            features: 当前域样本特征 [B, D]
+            labels: 当前域样本类别标签 [B]，可选
+            cur_proto: 当前域原型 [n_cur_classes, D]，可选
+            prev_proto: 历史原型 [n_prev_classes, D]，可选
+        Returns:
+            total_loss: 标量 loss
+            dict_losses: 各部分 loss
+        """
+        B, D = features.size()
+        f_norm = F.normalize(features, p=2, dim=1)
+
+        # ======================
+        # 1. 正对齐 (可选，自适应)
+        # ======================
+        loss_pos = torch.tensor(0.0, device=features.device)
+        if cur_proto is not None and labels is not None:
+            cur_proto_norm = F.normalize(cur_proto, p=2, dim=1)
+
+            pos_proto = cur_proto_norm[labels]  # [B, D]
+
+            # 找出哪些 proto 是全 0（即无效原型）
+            valid_mask = (cur_proto[labels].abs().sum(dim=1) > 1e-8).float()
+
+            # 计算余弦相似度
+            pos_sim = (f_norm * pos_proto).sum(dim=1)  # [B]
+
+            # 只对有效原型的样本计算 loss
+            if valid_mask.sum() > 0:
+                loss_pos = ((1.0 - pos_sim) * valid_mask).sum() / (valid_mask.sum() + 1e-8)
+
+        # ======================
+        # 2. 负分离 (可选)
+        # ======================
+        loss_neg = torch.tensor(0.0, device=features.device)
+        if prev_proto is not None and prev_proto.size(0) > 0:
+            prev_proto_norm = F.normalize(prev_proto, p=2, dim=1)
+            sim_matrix = torch.matmul(f_norm, prev_proto_norm.T)  # [B, N_prev]
+            cos_dist = 1.0 - sim_matrix
+            min_dist, _ = cos_dist.min(dim=1)
+            loss_neg = F.relu(self.margin - min_dist).mean()
+
+        # ======================
+        # 3. 总损失
+        # ======================
+        total_loss = self.alpha * loss_pos + self.beta * loss_neg
+
+        return total_loss, {"loss_pos": loss_pos.item(), "loss_neg": loss_neg.item()}
 
 def count_parameters(model, trainable=False):
     if trainable:
