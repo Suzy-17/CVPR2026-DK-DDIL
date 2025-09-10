@@ -1120,6 +1120,9 @@ class OurNet(BaseNet):
         self.fc_list_task = nn.ModuleList()
         self.adapter_list = nn.ModuleList()
         self.init_proto = None
+        
+        # self.W_rand = None
+        # self.RP_dim = None
 
             
     def freeze(self):
@@ -1169,6 +1172,40 @@ class OurNet(BaseNet):
         del self.fc
         self.fc = fc
         self.fc.requires_grad_(False)
+    
+    # def update_fc(self, nb_classes, nextperiod_initialization=None):
+    #     self._cur_task += 1
+    #     if self.task_increments:
+    #         self.inc = self.task_increments[self._cur_task]
+    #     if self._cur_task == 0:
+    #         self.proxy_fc = self.generate_fc(self.out_dim, self.init_cls).to(self._device)
+    #     else:
+    #         self.proxy_fc = self.generate_fc(self.out_dim, self.inc).to(self._device)
+    #     init_proto = self.generate_fc(self.out_dim, nb_classes).to(self._device)
+
+    #     if self.init_proto is not None:
+    #         old_nb_classes = self.init_proto.out_features
+    #         weight = copy.deepcopy(self.init_proto.weight.data)
+    #         init_proto.weight.data[: old_nb_classes, :] = nn.Parameter(weight)
+    #     del self.init_proto
+    #     self.init_proto = init_proto
+    #     if self.RP_dim is not None:
+    #         feature_dim = self.RP_dim
+    #     else:
+    #         feature_dim = self.feature_dim
+    #     fc = self.generate_fc(feature_dim, nb_classes).to(self._device)
+    #     if self.fc is not None:
+    #         nb_output = self.fc.out_features
+    #         weight = copy.deepcopy(self.fc.weight.data)
+    #         fc.sigma.data = self.fc.sigma.data
+    #         if nextperiod_initialization is not None:
+    #             weight = torch.cat([weight, nextperiod_initialization])
+    #         else:
+    #             weight = torch.cat([weight, torch.zeros(nb_classes - nb_output, feature_dim).to(self._device)])
+    #         fc.weight = nn.Parameter(weight)
+    #     del self.fc
+    #     self.fc = fc
+    #     self.fc.requires_grad_(False)
 
     def add_fc(self):
         self.fc_list.append(self.proxy_fc.requires_grad_(False))
@@ -1199,16 +1236,20 @@ class OurNet(BaseNet):
             self.inc = self.task_increments[self._cur_task]
         if test == False:
             x = self.backbone.forward(x, False)
+            # if self.W_rand is not None:
+            #     x = torch.nn.functional.relu(x @ self.W_rand)
             out = self.proxy_fc(x)
             out.update({"features": x})
             return out
         else:
             x_input = self.backbone.forward(x, True, use_init_ptm=self.use_init_ptm)
+            # if self.W_rand is not None:
+            #     x_input = torch.nn.functional.relu(x_input[:,-768:] @ self.W_rand)
             if self.args["moni_adam"] or (not self.args["use_reweight"]):
-                out = self.fc(x)
+                out = self.fc(x_input)
             else:
                 out = self.fc.forward_diagonal(x_input, cur_task=self._cur_task, alpha=self.alpha, init_cls=self.init_cls, inc=self.inc, use_init_ptm=self.use_init_ptm, beta=self.beta)
-
+                # out = self.fc(x_input)
             out.update({"features": x_input})
             return out
 

@@ -1,5 +1,5 @@
 {
-    "prefix": "ttttno_kd_orth_all_spec_loraab_msa1111_adarank_cosi_newinit",
+    "prefix": "all_spec_loraab_msa1111_adarank_cosi_newinit_5_1antiproto_0-11_no_neg",
     "dataset": "SKIN",
     "task_name": ["PH2", "MSK", "clinic_D7P", "derm_D7P", "HAM", "BCN", "OTHERS", "clinical", "dermoscopic"],
     "increment_per_session": [2,3,6,6,8,8,8,11,11],  

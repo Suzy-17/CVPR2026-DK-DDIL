@@ -8,6 +8,9 @@ from utils.toolkit import count_parameters
 import os
 import numpy as np
 import time
+import json
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 def train(args):
     seed_list = copy.deepcopy(args["seed"])
@@ -72,9 +75,37 @@ def _train(args):
             "Trainable params: {}".format(count_parameters(model._network, True))
         )
         model.incremental_train(data_manager)
-        cnn_accy, nme_accy = model.eval_task()
+        cnn_accy, nme_accy,cnn_accy_grouped = model.eval_task()
         model.after_task()
-
+        with open(os.path.join(args["logs_name"], "cnn_matrix.txt"), "a") as f:  # 使用追加模式
+            # 添加分隔符和时间标记
+            f.write(f"\n=== Update at {time.strftime('%Y-%m-%d %H:%M:%S')} ===\n")
+            json.dump(cnn_accy, f, indent=4, default=lambda x: x.tolist() if isinstance(x, np.ndarray) else x)
+            f.write("\n")  # 确保每次写入后有换行
+        os.makedirs(os.path.join(args["logs_name"], "cm"), exist_ok=True)
+        plt.figure(figsize=(12, 10))
+        sns.heatmap(cnn_accy['grouped']['confusion_matrix'], annot=True, fmt='d', cmap='Blues')
+        plt.title(f'Confusion Matrix - Task {task}')
+        plt.xlabel('Predicted')
+        plt.ylabel('Actual')
+        matrix_path = os.path.join(os.path.join(args["logs_name"], "cm"), f"confusion_matrix_task{task}.png")
+        plt.savefig(matrix_path, bbox_inches='tight', dpi=300)
+        plt.clf()
+        if cnn_accy_grouped is not None:
+            with open(os.path.join(args["logs_name"], "cnn_matrix_grouped.txt"), "a") as f:  # 使用追加模式
+                # 添加分隔符和时间标记
+                f.write(f"\n=== Update at {time.strftime('%Y-%m-%d %H:%M:%S')} ===\n")
+                json.dump(cnn_accy_grouped, f, indent=4, default=lambda x: x.tolist() if isinstance(x, np.ndarray) else x)
+                f.write("\n")  # 确保每次写入后有换行
+            os.makedirs(os.path.join(args["logs_name"], "cm_grouped"), exist_ok=True)
+            plt.figure(figsize=(12, 10))
+            sns.heatmap(cnn_accy_grouped['grouped']['confusion_matrix'], annot=True, fmt='d', cmap='Blues')
+            plt.title(f'Confusion Matrix - Task {task}')
+            plt.xlabel('Predicted')
+            plt.ylabel('Actual')
+            matrix_path = os.path.join(os.path.join(args["logs_name"], "cm_grouped"), f"confusion_matrix_task{task}.png")
+            plt.savefig(matrix_path, bbox_inches='tight', dpi=300)
+            plt.clf()
         if nme_accy is not None:
             logging.info("CNN: {}".format(cnn_accy["grouped"]))
             logging.info("NME: {}".format(nme_accy["grouped"]))
@@ -106,7 +137,9 @@ def _train(args):
         else:
             logging.info("No NME accuracy.")
             logging.info("CNN: {}".format(cnn_accy["grouped"]))
-
+            if cnn_accy_grouped is not None:
+                cnn_accy = cnn_accy_grouped
+                logging.info("CNN grouped: {}".format(cnn_accy["grouped"]))
             cnn_keys = [key for key in cnn_accy["grouped"].keys() if '-' in key]
             cnn_values = [cnn_accy["grouped"][key] for key in cnn_keys]
             cnn_matrix.append(cnn_values)

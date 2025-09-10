@@ -10,6 +10,46 @@ from scipy.spatial.distance import cdist
 EPSILON = 1e-8
 batch_size = 64
 
+def convert_cumulative_to_real_labels(cumulative_labels, increment_info, global_class_order=None):
+    """
+    将累积标签转换为真实标签
+    
+    参数:
+    cumulative_labels: 累积标签列表或数组
+    increment_info: 增量信息，可以是列表(如[2,3,6,6,8,8,8,11,11])或常量(如345)
+    global_class_order: 全局类别顺序列表，默认为None时会使用标准顺序
+    
+    返回:
+    真实标签列表
+    """
+    # 定义全局类别到真实标签的映射（基于表格中的列顺序）
+    if global_class_order is None:
+        global_class_order = ['NV', 'MEL', 'BKL', 'BCC', 'DF', 'VASC', 'AK', 'SCC', 'BEN_OTH', 'MAL_OTH', 'INF']
+    
+    class_to_real = {cls: idx for idx, cls in enumerate(global_class_order)}
+    
+    # 构建累积标签到真实标签的映射
+    cumulative_to_real = {}
+    current_cumulative = 0
+    
+    for session_inc in increment_info:
+        # 对于每个会话，前session_inc个全局类别会被使用
+        for i in range(session_inc):
+            if i < len(global_class_order):
+                real_label = class_to_real[global_class_order[i]]
+                cumulative_to_real[current_cumulative] = real_label
+                current_cumulative += 1
+            else:
+                # 处理超出全局类别数量的情况
+                cumulative_to_real[current_cumulative] = -1  # 或使用其他标记
+                current_cumulative += 1
+    
+    # 转换标签
+    real_labels = [cumulative_to_real.get(label, -1) for label in cumulative_labels]
+    print(f"cumulative_to_real:{cumulative_to_real}")
+    return np.array(real_labels)
+
+
 class BaseLearner(object):
     def __init__(self, args):
         self._cur_task = -1
@@ -121,6 +161,16 @@ class BaseLearner(object):
     def eval_task(self):
         y_pred, y_true = self._eval_cnn(self.test_loader)
         cnn_accy = self._evaluate(y_pred, y_true)
+        cnn_accy_grouped = None
+        if self.args['dataset'] == "SKIN":
+            y_pred_grouped = convert_cumulative_to_real_labels(y_pred.reshape(-1), self.args["increment_per_session"], global_class_order=None)
+            y_true_grouped = convert_cumulative_to_real_labels(y_true, self.args["increment_per_session"], global_class_order=None)
+            cnn_accy_grouped = self._evaluate(y_pred_grouped.reshape(-1,1), y_true_grouped)
+        elif self.args['dataset'] == 'domainnet':
+            y_pred_grouped = y_pred % self.args['increment']
+            y_true_grouped = y_true % self.args['increment']
+            cnn_accy_grouped = self._evaluate(y_pred_grouped.reshape(-1,1), y_true_grouped)
+        
 
         if hasattr(self, "_class_means"):
             y_pred, y_true = self._eval_nme(self.test_loader, self._class_means)
@@ -128,7 +178,7 @@ class BaseLearner(object):
         else:
             nme_accy = None
 
-        return cnn_accy, nme_accy
+        return cnn_accy, nme_accy, cnn_accy_grouped
 
     def incremental_train(self):
         pass

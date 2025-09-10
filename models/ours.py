@@ -8,7 +8,7 @@ from torch.nn import functional as F
 from torch.utils.data import DataLoader
 from utils.inc_net import OurNet
 from models.base import BaseLearner
-from utils.toolkit import tensor2numpy, DomainContrastiveLoss
+from utils.toolkit import tensor2numpy, DomainContrastiveLoss, target2onehot
 from backbone.vit_ours import Adapter_lora
 import random
 import os 
@@ -66,6 +66,7 @@ class Learner(BaseLearner):
 
         self.moni_adam = args["moni_adam"]
         self.adapter_num = args["adapter_num"]
+        
         self.anti_prototype_loss = DomainContrastiveLoss()
         if self.moni_adam:
             self.use_init_ptm = True
@@ -88,12 +89,6 @@ class Learner(BaseLearner):
             end_cls = start_cls + self.inc
 
         return start_cls, end_cls
-
-    def replace_fc_proxy(self):
-        model = self._network
-        model = model.eval()
-        model.fc.weight.data[self._known_classes:self._total_classes, :] = model.proxy_fc.weight.data
-        model.fc.bias.data[self._known_classes:self._total_classes] = model.proxy_fc.bias.data
 
     def replace_fc(self, train_loader):
         model = self._network
@@ -138,107 +133,7 @@ class Learner(BaseLearner):
                     else:
                         model.fc.weight.data[class_index, index*self._network.out_dim:(index+1)*self._network.out_dim] = proto
         return
-
-    def get_A_B_Ahat(self, task_id):
-        if self.use_init_ptm:
-            start_dim = (task_id + 1) * self._network.out_dim
-            end_dim = start_dim + self._network.out_dim
-        else:
-            start_dim = task_id * self._network.out_dim
-            end_dim = start_dim + self._network.out_dim
-
-        start_cls, end_cls = self.get_cls_range(task_id)
-
-        # W(Ti)  i is the i-th task index, T is the cur task index, W is a T*T matrix
-        A = self._network.fc.weight.data[self._known_classes:, start_dim : end_dim]
-        #A = self._network.fc.weight.data[0:, start_dim : end_dim]
-        # W(TT)
-        B = self._network.fc.weight.data[self._known_classes:, -self._network.out_dim:]
-        #B = self._network.fc.weight.data[0:, -self._network.out_dim:]
-        # W(ii)
-        A_hat = self._network.fc.weight.data[start_cls : end_cls, start_dim : end_dim]
-
-        return A.cpu(), B.cpu(), A_hat.cpu()
-
-    def solve_similarity(self):
-        for task_id in range(self._cur_task):
-            # print('Solve_similarity adapter:{}'.format(task_id))
-            start_cls, end_cls = self.get_cls_range(task_id=task_id)
-
-            A, B, A_hat = self.get_A_B_Ahat(task_id=task_id)
-
-            # calculate similarity matrix between A_hat(old_cls1) and A(new_cls1).
-            similarity = torch.zeros(len(A_hat), len(A))
-            for i in range(len(A_hat)):
-                for j in range(len(A)):
-                    similarity[i][j] = torch.cosine_similarity(A_hat[i], A[j], dim=0)
-
-            # softmax the similarity, it will be failed if not use it
-            similarity = F.softmax(similarity, dim=1)
-
-            # weight the combination of B(new_cls2)
-            B_hat = torch.zeros(A_hat.shape[0], B.shape[1])
-            for i in range(len(A_hat)):
-                for j in range(len(A)):
-                    B_hat[i] += similarity[i][j] * B[j]
-
-            # B_hat(old_cls2)
-            self._network.fc.weight.data[start_cls : end_cls, -self._network.out_dim:] = B_hat.to(self._device)
-
-    def solve_sim_reset(self):
-        if self.task_increments:
-            self.inc = self.task_increments[task_id]
-        for task_id in range(self._cur_task):
-            if self.moni_adam and task_id > self.adapter_num - 2:
-                break
-
-            if self.use_init_ptm:
-                range_dim = range(task_id + 2, self._cur_task + 2)
-            else:
-                range_dim = range(task_id + 1, self._cur_task + 1)
-            for dim_id in range_dim:
-                if self.moni_adam and dim_id > self.adapter_num:
-                    break
-                # print('Solve_similarity adapter:{}, {}'.format(task_id, dim_id))
-                start_cls, end_cls = self.get_cls_range(task_id=task_id)
-
-                start_dim = dim_id * self._network.out_dim
-                end_dim = (dim_id + 1) * self._network.out_dim
-
-                # Use the element above the diagonal to calculate
-                if self.use_init_ptm:
-                    start_cls_old = self.init_cls + (dim_id - 2) * self.inc
-                    end_cls_old = self._total_classes
-                    start_dim_old = (task_id + 1) * self._network.out_dim
-                    end_dim_old = (task_id + 2) * self._network.out_dim
-                else:
-                    start_cls_old = self.init_cls + (dim_id - 1) * self.inc
-                    end_cls_old = self._total_classes
-                    start_dim_old = task_id * self._network.out_dim
-                    end_dim_old = (task_id + 1) * self._network.out_dim
-
-                A = self._network.fc.weight.data[start_cls_old:end_cls_old, start_dim_old:end_dim_old].cpu()
-                B = self._network.fc.weight.data[start_cls_old:end_cls_old, start_dim:end_dim].cpu()
-                A_hat = self._network.fc.weight.data[start_cls:end_cls, start_dim_old:end_dim_old].cpu()
-
-                # calculate similarity matrix between A_hat(old_cls1) and A(new_cls1).
-                similarity = torch.zeros(len(A_hat), len(A))
-                for i in range(len(A_hat)):
-                    for j in range(len(A)):
-                        similarity[i][j] = torch.cosine_similarity(A_hat[i], A[j], dim=0)
-
-                # softmax the similarity, it will be failed if not use it
-                similarity = F.softmax(similarity, dim=1) # dim=1, not dim=0
-
-                # weight the combination of B(new_cls2)
-                B_hat = torch.zeros(A_hat.shape[0], B.shape[1])
-                for i in range(len(A_hat)):
-                    for j in range(len(A)):
-                        B_hat[i] += similarity[i][j] * B[j]
-
-                # B_hat(old_cls2)
-                self._network.fc.weight.data[start_cls : end_cls, start_dim : end_dim] = B_hat.to(self._device)
-
+    
     def incremental_train(self, data_manager):
         self._cur_task += 1
         self._total_classes = self._known_classes + data_manager.get_task_size(self._cur_task)
@@ -288,6 +183,7 @@ class Learner(BaseLearner):
             scheduler = self.get_scheduler(optimizer, self.args["later_epochs"])
 
         self._init_train(train_loader, test_loader, optimizer, scheduler)
+        
 
 
     def get_optimizer(self, lr):
@@ -432,9 +328,9 @@ class Learner(BaseLearner):
         best_acc, best_loss = 0.0, float('inf')
         
         # 添加早停机制相关变量
-        patience = getattr(self.args, 'patience', 10)
+        patience = getattr(self.args, 'patience', 15)
         patience_counter = 0
-        
+        self.cur_class_proto = torch.zeros((self.inc, 768)).to(self._device)
         for epoch in range(epochs): 
             self._network.train() 
             
@@ -462,7 +358,7 @@ class Learner(BaseLearner):
                 best_loss = val_loss
                 best_acc = val_acc
                 patience_counter = 0
-                self._save_best_model(epoch, val_acc, val_loss)
+                self._save_best_model(epoch, val_acc, val_loss, optimizer)
             else:
                 patience_counter += 1
             
@@ -575,17 +471,17 @@ class Learner(BaseLearner):
             # 计算损失
             ce_loss = F.cross_entropy(logits, aux_targets)
             # 计算anti-prototype loss
-            if epoch_index > 15:
-                anti_prototype_loss = self.anti_prototype_loss(output['features'], aux_targets, cur_class_proto/cur_class_nums.unsqueeze(-1), self.class_proto)[0]
+            if epoch_index > 5:
+                anti_prototype_loss = self.anti_prototype_loss(output['features'], aux_targets, self.cur_class_proto, self.class_proto)
             else:
-                anti_prototype_loss = self.anti_prototype_loss(output['features'], None, None, self.class_proto)[0]
+                anti_prototype_loss = self.anti_prototype_loss(output['features'], None, None, self.class_proto)
             # 添加LoRA正则化损失
             reg_loss = torch.tensor(0.0, device=self._device)
             for lora in lora_adapters:
                 if hasattr(lora, 'regularization_loss'):
                     reg_loss += lora.regularization_loss()
             
-            total_loss_batch = ce_loss + reg_loss + anti_prototype_loss # ce_loss + 
+            total_loss_batch = ce_loss + reg_loss + 1 * anti_prototype_loss[0] # ce_loss + 
             
             # 反向传播
             total_loss_batch.backward()
@@ -617,10 +513,12 @@ class Learner(BaseLearner):
         
         avg_loss = total_loss / len(train_loader) if len(train_loader) > 0 else 0.0
         avg_acc = 100.0 * correct / total if total > 0 else 0.0
-        
+        cur_class_proto = cur_class_proto/cur_class_nums.unsqueeze(-1)
+        momentum = 0.9
+        # self.cur_class_proto = momentum * self.cur_class_proto + (1-momentum) * cur_class_proto
         return avg_loss, avg_acc
 
-    def _save_best_model(self, epoch, acc, loss):
+    def _save_best_model(self, epoch, acc, loss,optimizer):
         """保存最佳模型"""
         lora_adapters = self._get_lora_adapters()
         lora_stats = []
@@ -634,6 +532,7 @@ class Learner(BaseLearner):
             lora_stats.append(stats)
         
         save_path = self.args["logs_name"] + f"/best_model_task_{self._cur_task}.pth"
+        logging.info(f"Save best model to {save_path}")
         torch.save({
             'state_dict': self._network.state_dict(),
             'lora_stats': lora_stats,

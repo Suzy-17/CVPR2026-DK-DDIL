@@ -191,15 +191,34 @@ class Adapter_lora(nn.Module):
         #     self.rank_scores[:min_rank] += torch.randn(min_rank) * 0.5 + 1.0  # 更容易被激活
         #     self.rank_scores[min_rank:] += torch.randn(max_rank - min_rank) * 0.2  # 其他维度小幅随机
         self.register_buffer('active_mask', torch.ones(max_rank, dtype=torch.bool)) 
-         
+        self.random_orth = True
         # LoRA矩阵定义
         self.lora_A = nn.Linear(self.n_embd, max_rank, bias=False)
         self.lora_B = nn.Linear(max_rank, self.n_embd, bias=False)
+        
+        if self.random_orth:
+            random_matrix = torch.rand(self.n_embd, max_rank)
+            q, r = torch.linalg.qr(random_matrix)
+            with torch.no_grad():
+                self.lora_A.weight.copy_(q.T)
+            scaling_factor = 1.  # You can adjust this value if needed
+            self.lora_A.weight.data *= scaling_factor
+        else:
+            with torch.no_grad():
+                nn.init.kaiming_uniform_(self.lora_A.weight, a=math.sqrt(5))
+
+        if init_option == "bert":
+            raise NotImplementedError
+        elif init_option == "lora":
+            with torch.no_grad():
+                nn.init.zeros_(self.lora_B.weight)
+        else:
+            raise NotImplementedError
          
-        # 关键修复：正确的LoRA初始化 
-        assert init_scale > 0, "初始化尺度必须为正数" 
-        nn.init.kaiming_uniform_(self.lora_A.weight, a=math.sqrt(5))
-        nn.init.zeros_(self.lora_B.weight)  # LoRA标准做法：B初始化为零
+        # # 关键修复：正确的LoRA初始化 
+        # assert init_scale > 0, "初始化尺度必须为正数" 
+        # nn.init.kaiming_uniform_(self.lora_A.weight, a=math.sqrt(5))
+        # nn.init.zeros_(self.lora_B.weight)  # LoRA标准做法：B初始化为零
         # # LoRA标准初始化：A用小方差高斯，B用零初始化
         # std_a = 1.0 / math.sqrt(max_rank)  # 根据输出维度调整
         # nn.init.normal_(self.lora_A.weight, mean=0.0, std=std_a)
@@ -502,7 +521,7 @@ class Block(nn.Module):
             x = self.drop_path(self.mlp_drop(self.fc2(x)))
             x = residual + x
             residual = x
-            if self.msa[3] == 1:
+            if self.msa[3] == 1 and adapt is not None:
                 x = self.mlp_drop(adapt[3](x))
             x = residual + x
         return x
