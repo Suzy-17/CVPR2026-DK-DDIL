@@ -12,7 +12,7 @@ from utils.toolkit import tensor2numpy, DomainContrastiveLoss, target2onehot
 from backbone.vit_ours import Adapter_lora
 import random
 import os 
-num_workers = 8
+num_workers = 4
 
 
 def _KD_loss(pred, soft, T):
@@ -318,8 +318,8 @@ class Learner(BaseLearner):
         else: 
             epochs = self.args['later_epochs'] 
 
-        # 修复：更安全的参数检查和LoRA组件访问
-        self._check_lora_parameters()
+        # # 修复：更安全的参数检查和LoRA组件访问
+        # self._check_lora_parameters()
         
         # 在训练开始前初始化LoRA的有效秩
         self._initialize_lora_ranks()
@@ -392,6 +392,13 @@ class Learner(BaseLearner):
         
         # 加载最佳模型
         self._load_best_model()
+        
+        # lora_adapters = self._get_lora_adapters()
+        # for lora in lora_adapters:
+        #     # if hasattr(lora, 'commit_current_as_base'):
+        #     #     lora.commit_current_as_base()
+        #     if hasattr(lora, 'prune_parameters'):
+        #         lora.prune_parameters()
         
         # 训练结束后的LoRA统计
         self._log_lora_statistics()
@@ -481,23 +488,16 @@ class Learner(BaseLearner):
                 if hasattr(lora, 'regularization_loss'):
                     reg_loss += lora.regularization_loss()
             
-            total_loss_batch = ce_loss + reg_loss + 1 * anti_prototype_loss[0] # ce_loss + 
+            total_loss_batch = ce_loss + 1 * anti_prototype_loss[0]+ reg_loss#+ reg_loss#+ reg_loss + 1 * anti_prototype_loss[0] # ce_loss + 
             
             # 反向传播
             total_loss_batch.backward()
             
             # 梯度裁剪（在optimizer.step()之前）
-            for lora in lora_adapters:
-                if hasattr(lora, 'clip_gradients'):
-                    lora.clip_gradients(max_norm=1.0)
-            
-            # # 全局梯度裁剪（可选）
-            # if hasattr(self.args, 'max_grad_norm'):
-            #     torch.nn.utils.clip_grad_norm_(
-            #         self._network.parameters(), 
-            #         self.args['max_grad_norm']
-            #     )
-            
+            # for lora in lora_adapters:
+            #     if hasattr(lora, 'clip_gradients'):
+            #         lora.clip_gradients(max_norm=1.0)
+            torch.nn.utils.clip_grad_norm_(self._network.parameters(), max_norm=1.0)
             optimizer.step()
             with torch.no_grad():
                 for c in aux_targets.unique():
@@ -513,9 +513,12 @@ class Learner(BaseLearner):
         
         avg_loss = total_loss / len(train_loader) if len(train_loader) > 0 else 0.0
         avg_acc = 100.0 * correct / total if total > 0 else 0.0
-        cur_class_proto = cur_class_proto/cur_class_nums.unsqueeze(-1)
-        momentum = 0.9
-        # self.cur_class_proto = momentum * self.cur_class_proto + (1-momentum) * cur_class_proto
+        self.cur_class_proto = cur_class_proto/cur_class_nums.unsqueeze(-1)
+        # for lora in lora_adapters:
+        #     if hasattr(lora, 'prune_parameters'):
+        #         lora.prune_parameters()
+        #     if hasattr(lora, 'prune_parameters'):
+        #         lora.prune_parameters()
         return avg_loss, avg_acc
 
     def _save_best_model(self, epoch, acc, loss,optimizer):

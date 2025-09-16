@@ -1,5 +1,5 @@
 {
-    "prefix": "all_spec_loraab_msa1111_adarank_cosi_newinit_5_1antiproto_0-11_no_neg",
+    "prefix": "ttttvgpt_only_cl_gen_spec_0_11_5_proto_loss_1111_reg",
     "dataset": "SKIN",
     "task_name": ["PH2", "MSK", "clinic_D7P", "derm_D7P", "HAM", "BCN", "OTHERS", "clinical", "dermoscopic"],
     "increment_per_session": [2,3,6,6,8,8,8,11,11],  
@@ -47,5 +47,5 @@
     "use_block_weight": true,
     "msa":[1,1,1,1],
     "general_pos":[],
-    "specfic_pos": [0,1,2,3,4,5,6,7,8,9,10,11]
+    "specfic_pos": [0,1,2,3,4,5,6,7,8,9,11]
 }
