@@ -753,8 +753,8 @@ class Adapter_lora(nn.Module):
             # 添加dropout
             x_dropout = self.lora_dropout(x)
             x_dropout = F.normalize(x_dropout, p=2, dim=1)
-            A_weighted = F.normalize(A_weighted, p=2, dim=1)
-            B_weighted = F.normalize(B_weighted, p=2, dim=1)
+            # A_weighted = F.normalize(A_weighted, p=2, dim=1)
+            # B_weighted = F.normalize(B_weighted, p=2, dim=1)
             hidden = F.linear(x_dropout, A_weighted)
             output = F.linear(hidden, B_weighted)     # [batch, seq, n_embd]
             
@@ -766,8 +766,8 @@ class Adapter_lora(nn.Module):
                 
                 x = self.lora_dropout(x)
                 x = F.normalize(x, p=2, dim=1)
-                A_active = F.normalize(A_active, p=2, dim=1)
-                B_active = F.normalize(B_active, p=2, dim=1)
+                # A_active = F.normalize(A_active, p=2, dim=1)
+                # B_active = F.normalize(B_active, p=2, dim=1)
                 hidden = F.linear(x, A_active)
                 output = F.linear(hidden, B_active)
             else:
@@ -788,17 +788,10 @@ class Adapter_lora(nn.Module):
     @torch.no_grad() 
     def prune_parameters(self): 
         # 修复：安全的参数剪枝
-        sigmoid_scores = torch.sigmoid(self.rank_scores)
-        self.active_mask = sigmoid_scores > 0.5 
-        active_count = torch.sum(self.active_mask).item()
         
-        if active_count < self.min_rank:
-            # 如果激活太少，选择top-k
-            _, top_indices = torch.topk(sigmoid_scores, self.min_rank)
-            self.active_mask.zero_()
-            self.active_mask[top_indices] = True
-            active_count = self.min_rank
-            
+        mask, self.active_mask, current_rank = self.get_active_components()
+        active_count = torch.sum(self.active_mask).item()
+           
         if active_count == 0:
             print("警告：没有激活的维度，跳过剪枝")
             return
@@ -806,20 +799,67 @@ class Adapter_lora(nn.Module):
         # 创建新的线性层
         new_lora_A = nn.Linear(self.n_embd, active_count, bias=False).to(self.lora_A.weight.device)
         new_lora_B = nn.Linear(active_count, self.n_embd, bias=False).to(self.lora_B.weight.device)
-        
+        self.max_rank = active_count
         # 复制激活的权重
         new_lora_A.weight.data = self.lora_A.weight[self.active_mask, :].clone()
         new_lora_B.weight.data = self.lora_B.weight[:, self.active_mask].clone()
         
+        # old_W = self.lora_B.weight @ self.lora_A.weight   
         # 替换模块
         self.lora_A = new_lora_A
         self.lora_B = new_lora_B
          
         # 更新参数
-        self.max_rank = active_count
+        # self.max_rank = active_count
         self.rank_scores = nn.Parameter(torch.ones(self.max_rank, device=self.rank_scores.device))
         self.register_buffer('active_mask', torch.ones(self.max_rank, dtype=torch.bool))
-         
+      
+    # @torch.no_grad()
+    # def prune_parameters(self): 
+    #     """安全剪枝：保证剪枝前后 forward 输出一致"""
+
+    #     # 获取当前mask和active indices
+    #     mask, active_indices, current_rank = self.get_active_components()
+    #     active_count = torch.sum(active_indices).item()
+        
+    #     if active_count == 0:
+    #         print("警告：没有激活的维度，跳过剪枝")
+    #         return
+        
+    #     # ----------- 关键修改点 -----------
+    #     # 1. 先应用 mask + normalize，再提取子矩阵
+    #     # A_weighted = self.lora_A.weight * mask.unsqueeze(1)
+    #     # B_weighted = self.lora_B.weight * mask.unsqueeze(0)
+
+    #     # A_weighted = F.normalize(A_weighted, p=2, dim=1)
+    #     # B_weighted = F.normalize(B_weighted, p=2, dim=1)
+
+    #     # 2. 只保留 active 的行/列
+    #     A_active = A_weighted[active_indices, :].clone()
+    #     B_active = B_weighted[:, active_indices].clone()
+    #     # --------------------------------
+
+    #     # 创建新的线性层
+    #     new_lora_A = nn.Linear(self.n_embd, active_count, bias=False).to(self.lora_A.weight.device)
+    #     new_lora_B = nn.Linear(active_count, self.n_embd, bias=False).to(self.lora_B.weight.device)
+
+    #     # 拷贝权重
+    #     new_lora_A.weight.data = A_active
+    #     new_lora_B.weight.data = B_active
+
+    #     # 替换模块
+    #     self.lora_A = new_lora_A
+    #     self.lora_B = new_lora_B
+
+    #     # 更新 rank_scores，只保留被选中的部分
+    #     self.rank_scores = nn.Parameter(self.rank_scores[active_indices].clone())
+
+    #     # 更新 active_mask
+    #     self.register_buffer('active_mask', torch.ones(active_count, dtype=torch.bool))
+
+    #     # 更新 max_rank
+    #     self.max_rank = active_count
+       
     def clip_gradients(self, max_norm=1.0): 
         # 梯度裁剪 
         if self.rank_scores.grad is not None:

@@ -393,9 +393,9 @@ class Learner(BaseLearner):
                 logging.info(f"Early stopping at epoch {epoch + 1}")
                 break
             
-            # 定期进行LoRA剪枝（可选）
-            if (epoch + 1) % getattr(self.args, 'prune_interval', 20) == 0:
-                self._prune_lora_adapters(epoch)
+            # # 定期进行LoRA剪枝（可选）
+            # if (epoch + 1) % getattr(self.args, 'prune_interval', 20) == 0:
+            #     self._prune_lora_adapters(epoch)
         
         prog_bar.close()
         
@@ -523,11 +523,12 @@ class Learner(BaseLearner):
         avg_loss = total_loss / len(train_loader) if len(train_loader) > 0 else 0.0
         avg_acc = 100.0 * correct / total if total > 0 else 0.0
         self.cur_class_proto = cur_class_proto/cur_class_nums.unsqueeze(-1)
-        # for lora in lora_adapters:
-        #     if hasattr(lora, 'prune_parameters'):
-        #         lora.prune_parameters()
-        #     if hasattr(lora, 'prune_parameters'):
-        #         lora.prune_parameters()
+        # if epoch_index % 25 == 0:
+        #     for lora in lora_adapters:
+        #         if hasattr(lora, 'prune_parameters'):
+        #             lora.prune_parameters()
+            # if hasattr(lora, 'prune_parameters'):
+            #     lora.prune_parameters()
         return avg_loss, avg_acc
 
     def _save_best_model(self, epoch, acc, loss,optimizer):
@@ -575,7 +576,7 @@ class Learner(BaseLearner):
 
     def _prune_lora_adapters(self, epoch):
         """定期进行LoRA剪枝"""
-        if not getattr(self.args, 'enable_pruning', False):
+        if not getattr(self.args, 'enable_pruning', True):
             return
             
         lora_adapters = self._get_lora_adapters()
@@ -583,6 +584,7 @@ class Learner(BaseLearner):
             if hasattr(lora, 'prune_parameters'):
                 old_rank = getattr(lora, 'current_rank', 0)
                 lora.prune_parameters()
+                
                 new_rank = getattr(lora, 'current_rank', 0)
                 if old_rank != new_rank:
                     logging.info(f"LoRA {i} pruned: {old_rank} -> {new_rank} at epoch {epoch + 1}")

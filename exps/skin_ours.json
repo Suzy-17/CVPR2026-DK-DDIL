@@ -1,5 +1,5 @@
 {
-    "prefix": "vds_only_cl_gen_spec_0_11_5_proto_loss_1111_reg_1030301",
+    "prefix": "vds_only_cl_gen_spec_0_11_5_proto_loss_1111_reg_1030301_nosmooth_nonorm",
     "dataset": "SKIN",
     "task_name": ["PH2", "MSK", "clinic_D7P", "derm_D7P", "HAM", "BCN", "OTHERS", "clinical", "dermoscopic"],
     "increment_per_session": [2,3,6,6,8,8,8,11,11],  
@@ -29,7 +29,7 @@
     "gamma": 1.0,
     "curriculum_learning": true,
     "adaptive_temp": true,
-    "smooth_loss": true,
+    "smooth_loss": false,
     "temperature": 0.1,
     "optimizer": "adamw",
     "scheduler": "cosine",
