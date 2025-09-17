@@ -12,7 +12,7 @@ from utils.toolkit import tensor2numpy, DomainContrastiveLoss, target2onehot
 from backbone.vit_ours import Adapter_lora
 import random
 import os 
-num_workers = 4
+num_workers = 8
 
 
 def _KD_loss(pred, soft, T):
@@ -67,7 +67,16 @@ class Learner(BaseLearner):
         self.moni_adam = args["moni_adam"]
         self.adapter_num = args["adapter_num"]
         
-        self.anti_prototype_loss = DomainContrastiveLoss()
+        self.anti_prototype_loss = DomainContrastiveLoss(
+            margin=args["margin"], 
+            alpha=args["alpha_loss"], 
+            beta=args["beta_loss"], 
+            gamma=args["gamma"], 
+            temperature=args["temperature"],
+            adaptive_temp = args["adaptive_temp"],
+            smooth_loss= args["smooth_loss"],
+            curriculum_learning = args["curriculum_learning"]
+            )
         if self.moni_adam:
             self.use_init_ptm = True
             self.alpha = 1
@@ -479,7 +488,7 @@ class Learner(BaseLearner):
             ce_loss = F.cross_entropy(logits, aux_targets)
             # 计算anti-prototype loss
             if epoch_index > 5:
-                anti_prototype_loss = self.anti_prototype_loss(output['features'], aux_targets, self.cur_class_proto, self.class_proto)
+                anti_prototype_loss = self.anti_prototype_loss(features = output['features'], labels = aux_targets, cur_proto = self.cur_class_proto, prev_proto = self.class_proto)
             else:
                 anti_prototype_loss = self.anti_prototype_loss(output['features'], None, None, self.class_proto)
             # 添加LoRA正则化损失
