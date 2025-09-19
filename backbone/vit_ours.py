@@ -753,8 +753,8 @@ class Adapter_lora(nn.Module):
             # 添加dropout
             x_dropout = self.lora_dropout(x)
             x_dropout = F.normalize(x_dropout, p=2, dim=1)
-            # A_weighted = F.normalize(A_weighted, p=2, dim=1)
-            # B_weighted = F.normalize(B_weighted, p=2, dim=1)
+            A_weighted = F.normalize(A_weighted, p=2, dim=1)
+            B_weighted = F.normalize(B_weighted, p=2, dim=1)
             hidden = F.linear(x_dropout, A_weighted)
             output = F.linear(hidden, B_weighted)     # [batch, seq, n_embd]
             
@@ -766,8 +766,8 @@ class Adapter_lora(nn.Module):
                 
                 x = self.lora_dropout(x)
                 x = F.normalize(x, p=2, dim=1)
-                # A_active = F.normalize(A_active, p=2, dim=1)
-                # B_active = F.normalize(B_active, p=2, dim=1)
+                A_active = F.normalize(A_active, p=2, dim=1)
+                B_active = F.normalize(B_active, p=2, dim=1)
                 hidden = F.linear(x, A_active)
                 output = F.linear(hidden, B_active)
             else:

@@ -306,87 +306,88 @@ class Learner(BaseLearner):
         
     #     return
     
-    def replace_fc(self, train_loader):
-        """
-        使用细化的原型计算方法，考虑样本数量和数据分布特性
-        """
-        model = self._network
-        model = model.eval()
+    # def replace_fc(self, train_loader):
+    #     """
+    #     使用细化的原型计算方法，考虑样本数量和数据分布特性
+    #     """
+    #     model = self._network
+    #     model = model.eval()
         
-        with torch.no_grad():
-            if self.use_init_ptm:
-                start_idx = -1
-            else:
-                start_idx = 0
+    #     with torch.no_grad():
+    #         if self.use_init_ptm:
+    #             start_idx = -1
+    #         else:
+    #             start_idx = 0
                 
-            for index in range(start_idx, self._cur_task + 1):
-                if self.moni_adam and index > self.adapter_num - 1:
-                    break
-                elif self.use_diagonal and index != -1 and index != self._cur_task:
-                    continue
+    #         for index in range(start_idx, self._cur_task + 1):
+    #             if self.moni_adam and index > self.adapter_num - 1:
+    #                 break
+    #             elif self.use_diagonal and index != -1 and index != self._cur_task:
+    #                 continue
                     
-                embedding_list, label_list = [], []
+    #             embedding_list, label_list = [], []
                 
-                # 收集特征和标签
-                for i, batch in enumerate(train_loader):
-                    (_, data, label) = batch
-                    data = data.to(self._device)
-                    label = label.to(self._device)
-                    embedding = model.backbone.forward_proto(data, adapt_index=index)
-                    embedding_list.append(embedding.cpu())
-                    label_list.append(label.cpu())
+    #             # 收集特征和标签
+    #             for i, batch in enumerate(train_loader):
+    #                 (_, data, label) = batch
+    #                 data = data.to(self._device)
+    #                 label = label.to(self._device)
+    #                 embedding = model.backbone.forward_proto(data, adapt_index=index)
+    #                 embedding_list.append(embedding.cpu())
+    #                 label_list.append(label.cpu())
                     
-                embedding_list = torch.cat(embedding_list, dim=0)
-                label_list = torch.cat(label_list, dim=0)
-                class_list = np.unique(self.train_dataset_for_protonet.labels)
+    #             embedding_list = torch.cat(embedding_list, dim=0)
+    #             label_list = torch.cat(label_list, dim=0)
+    #             class_list = np.unique(self.train_dataset_for_protonet.labels)
                 
-                # 计算全局统计信息用于标准化
-                all_sample_counts = []
-                all_variances = []
+    #             # 计算全局统计信息用于标准化
+    #             all_sample_counts = []
+    #             all_variances = []
                 
-                for class_index in class_list:
-                    data_index = (label_list == class_index).nonzero().squeeze(-1)
-                    all_sample_counts.append(len(data_index))
-                    if len(data_index) > 1:
-                        class_embeddings = embedding_list[data_index]
-                        variance = torch.var(class_embeddings, dim=0).mean().item()
-                        all_variances.append(variance)
+    #             for class_index in class_list:
+    #                 data_index = (label_list == class_index).nonzero().squeeze(-1)
+    #                 all_sample_counts.append(len(data_index))
+    #                 if len(data_index) > 1:
+    #                     class_embeddings = embedding_list[data_index]
+    #                     variance = torch.var(class_embeddings, dim=0).mean().item()
+    #                     all_variances.append(variance)
                 
-                # 计算统计量用于标准化
-                max_count = max(all_sample_counts)
-                mean_variance = np.mean(all_variances) if all_variances else 1.0
+    #             # 计算统计量用于标准化
+    #             max_count = max(all_sample_counts)
+    #             mean_variance = np.mean(all_variances) if all_variances else 1.0
                 
-                # 为每个类计算细化的原型
-                for class_index in class_list:
-                    data_index = (label_list == class_index).nonzero().squeeze(-1)
-                    embedding = embedding_list[data_index]
-                    sample_count = len(data_index)
+    #             # 为每个类计算细化的原型
+    #             for class_index in class_list:
+    #                 data_index = (label_list == class_index).nonzero().squeeze(-1)
+    #                 embedding = embedding_list[data_index]
+    #                 sample_count = len(data_index)
                     
-                    # 方案1: 基于样本数量的置信度调整
-                    proto_refined = self._compute_confidence_weighted_proto(
-                        embedding, sample_count, max_count
-                    )
+    #                 # 方案1: 基于样本数量的置信度调整
+    #                 proto_refined = self._compute_confidence_weighted_proto(
+    #                     embedding, sample_count, max_count
+    #                 )
                     
-                    # # 方案2: 结合方差信息的调整
-                    # if sample_count > 1:
-                    #     proto_refined = self._compute_variance_aware_proto(
-                    #         embedding, sample_count, mean_variance
-                    #     )
+    #                 # 方案2: 结合方差信息的调整
+    #                 if sample_count > 1:
+    #                     proto_refined = self._compute_variance_aware_proto(
+    #                         embedding, sample_count, mean_variance
+    #                     )
                     
-                    # # 方案3: 综合多种因素
-                    # proto_refined = self._compute_comprehensive_proto(
-                    #     embedding, sample_count, max_count, mean_variance
-                    # )
+    #                 # 方案3: 综合多种因素
+    #                 proto_refined = self._compute_comprehensive_proto(
+    #                     embedding, sample_count, max_count, mean_variance
+    #                 )
                     
-                    self.class_proto = torch.cat((self.class_proto, proto_refined.unsqueeze(0).to(self._device)), dim=0)
+    #                 self.class_proto = torch.cat((self.class_proto, proto_refined.unsqueeze(0).to(self._device)), dim=0)
                     
-                    # 更新分类器权重
-                    if self.use_init_ptm:
-                        model.fc.weight.data[class_index, (index+1)*self._network.out_dim:(index+2)*self._network.out_dim] = proto_refined
-                    else:
-                        model.fc.weight.data[class_index, index*self._network.out_dim:(index+1)*self._network.out_dim] = proto_refined
+    #                 # 更新分类器权重
+    #                 if self.use_init_ptm:
+    #                     model.fc.weight.data[class_index, (index+1)*self._network.out_dim:(index+2)*self._network.out_dim] = proto_refined
+    #                 else:
+    #                     model.fc.weight.data[class_index, index*self._network.out_dim:(index+1)*self._network.out_dim] = proto_refined
         
-        return
+    #     return
+    
     def _compute_confidence_weighted_proto(self, embeddings, sample_count, max_count):
         """
         方案1: 基于样本数量的置信度加权
@@ -432,38 +433,260 @@ class Learner(BaseLearner):
             refined_proto = base_proto
         
         return refined_proto
-    def _compute_comprehensive_proto(self, embeddings, sample_count, max_count, mean_variance):
+    
+    # def _compute_comprehensive_proto(self, embeddings, sample_count, max_count, mean_variance):
+    #     """
+    #     方案3: 综合考虑多种因素的原型计算
+    #     """
+    #     base_proto = embeddings.mean(0)
+        
+    #     # 样本数量置信度
+    #     count_confidence = np.tanh(sample_count / 10.0)  # 平滑的置信度函数
+        
+    #     # 方差稳定性
+    #     if sample_count > 1:
+    #         class_variance = torch.var(embeddings, dim=0).mean().item()
+    #         variance_stability = 1.0 / (1.0 + class_variance / mean_variance)
+    #     else:
+    #         variance_stability = 0.5  # 单样本情况下的默认值
+        
+    #     # 综合权重
+    #     overall_confidence = 0.7 * count_confidence + 0.3 * variance_stability
+        
+    #     # 自适应正则化
+    #     regularization_strength = 1.0 - overall_confidence
+        
+    #     # L2正则化（向零收缩）
+    #     refined_proto = base_proto * (1.0 - regularization_strength * 0.1)
+        
+    #     # 可选：添加噪声以增强泛化能力（对于低置信度的类）
+    #     if overall_confidence < 0.5 and sample_count < 5:
+    #         noise_scale = (1.0 - overall_confidence) * 0.01
+    #         noise = torch.randn_like(refined_proto) * noise_scale
+    #         refined_proto += noise
+        
+    #     return refined_proto
+    
+    def _compute_comprehensive_proto(self, embeddings, sample_count, max_count, mean_variance, 
+                                class_index=None, all_class_protos=None):
         """
-        方案3: 综合考虑多种因素的原型计算
+        方案3: 综合考虑多种因素的原型计算 - 增强类间区分性版本
         """
         base_proto = embeddings.mean(0)
         
         # 样本数量置信度
-        count_confidence = np.tanh(sample_count / 10.0)  # 平滑的置信度函数
+        count_confidence = np.tanh(sample_count / 10.0)
         
         # 方差稳定性
         if sample_count > 1:
             class_variance = torch.var(embeddings, dim=0).mean().item()
             variance_stability = 1.0 / (1.0 + class_variance / mean_variance)
         else:
-            variance_stability = 0.5  # 单样本情况下的默认值
+            variance_stability = 0.5
         
         # 综合权重
         overall_confidence = 0.7 * count_confidence + 0.3 * variance_stability
         
-        # 自适应正则化
-        regularization_strength = 1.0 - overall_confidence
+        # === 新增：增强类间区分性 ===
+        if all_class_protos is not None and len(all_class_protos) > 0:
+            # 计算与其他类原型的最小距离
+            min_inter_distance = self._compute_min_inter_class_distance(base_proto, all_class_protos)
+            
+            # 如果类间距离过小，增强原型的区分性
+            distance_threshold = 0.1  # 可调节
+            if min_inter_distance < distance_threshold:
+                # 计算推离方向
+                repulsion_vector = self._compute_repulsion_vector(base_proto, all_class_protos)
+                # 应用推离，但要考虑置信度
+                repulsion_strength = (1.0 - min_inter_distance / distance_threshold) * overall_confidence * 0.1
+                base_proto = base_proto + repulsion_strength * repulsion_vector
         
-        # L2正则化（向零收缩）
-        refined_proto = base_proto * (1.0 - regularization_strength * 0.1)
+        # 自适应正则化 - 降低正则化强度以保持区分性
+        regularization_strength = (1.0 - overall_confidence) * 0.05  # 从0.1降到0.05
         
-        # 可选：添加噪声以增强泛化能力（对于低置信度的类）
-        if overall_confidence < 0.5 and sample_count < 5:
-            noise_scale = (1.0 - overall_confidence) * 0.01
-            noise = torch.randn_like(refined_proto) * noise_scale
-            refined_proto += noise
+        # 更温和的正则化
+        refined_proto = base_proto * (1.0 - regularization_strength)
+        
+        # 对于极少样本的情况，使用对比学习思想
+        if sample_count < 3 and all_class_protos is not None:
+            refined_proto = self._apply_contrastive_adjustment(
+                refined_proto, all_class_protos, overall_confidence
+            )
         
         return refined_proto
+
+    def _update_global_statistics(self, train_loader):
+        """
+        预计算全局统计信息
+        """
+        all_embeddings = []
+        
+        with torch.no_grad():
+            for batch in train_loader:
+                (_, data, _) = batch
+                data = data.to(self._device)
+                embedding = self._network.backbone.forward_proto(data, adapt_index=-1)
+                all_embeddings.append(embedding.cpu())
+        
+        all_embeddings = torch.cat(all_embeddings, dim=0)
+        self.global_mean_embedding = all_embeddings.mean(0)
+        self.global_std_embedding = all_embeddings.std(0)
+
+    # 新增辅助方法
+    def _compute_min_inter_class_distance(self, current_proto, existing_protos):
+        """
+        计算当前原型与已存在原型的最小距离
+        """
+        if len(existing_protos) == 0:
+            return float('inf')
+        
+        distances = []
+        for proto in existing_protos:
+            # 使用余弦距离（与最终分类保持一致）
+            cosine_sim = torch.cosine_similarity(current_proto.unsqueeze(0), proto.unsqueeze(0))
+            distance = 1.0 - cosine_sim.item()
+            distances.append(distance)
+        
+        return min(distances)
+
+    def _compute_repulsion_vector(self, current_proto, existing_protos):
+        """
+        计算推离向量，使当前原型远离过近的其他原型
+        """
+        repulsion_vector = torch.zeros_like(current_proto)
+        
+        for proto in existing_protos:
+            # 计算从其他原型指向当前原型的方向
+            direction = current_proto - proto
+            distance = torch.norm(direction) + 1e-8  # 避免除零
+            
+            # 标准化方向向量，距离越近权重越大
+            weight = 1.0 / (distance + 1e-8)
+            repulsion_vector += weight * direction / distance
+        
+        # 标准化总的推离向量
+        if torch.norm(repulsion_vector) > 1e-8:
+            repulsion_vector = repulsion_vector / torch.norm(repulsion_vector)
+        
+        return repulsion_vector
+
+    def _apply_contrastive_adjustment(self, proto, existing_protos, confidence):
+        """
+        基于对比学习的原型调整
+        """
+        if len(existing_protos) == 0:
+            return proto
+        
+        # 计算与所有已存在原型的相似度
+        similarities = []
+        for existing_proto in existing_protos:
+            sim = torch.cosine_similarity(proto.unsqueeze(0), existing_proto.unsqueeze(0))
+            similarities.append(sim.item())
+        
+        # 如果最大相似度过高，进行调整
+        max_similarity = max(similarities)
+        if max_similarity > 0.9:  # 阈值可调
+            # 找到最相似的原型
+            most_similar_idx = similarities.index(max_similarity)
+            most_similar_proto = existing_protos[most_similar_idx]
+            
+            # 计算垂直方向的调整
+            diff = proto - most_similar_proto
+            adjustment_strength = (max_similarity - 0.9) * confidence * 0.5
+            
+            # 在垂直于最相似原型的方向上调整
+            orthogonal_direction = diff - torch.dot(diff, most_similar_proto) * most_similar_proto
+            if torch.norm(orthogonal_direction) > 1e-8:
+                orthogonal_direction = orthogonal_direction / torch.norm(orthogonal_direction)
+                proto = proto + adjustment_strength * orthogonal_direction
+        
+        return proto
+
+    def replace_fc(self, train_loader):
+        """
+        增强版的原型替换函数，专注于维持类间区分性
+        """
+        model = self._network
+        model = model.eval()
+        
+        with torch.no_grad():
+            if self.use_init_ptm:
+                start_idx = -1
+            else:
+                start_idx = 0
+                
+            for index in range(start_idx, self._cur_task + 1):
+                if self.moni_adam and index > self.adapter_num - 1:
+                    break
+                elif self.use_diagonal and index != -1 and index != self._cur_task:
+                    continue
+                    
+                embedding_list, label_list = [], []
+                
+                for i, batch in enumerate(train_loader):
+                    (_, data, label) = batch
+                    data = data.to(self._device)
+                    label = label.to(self._device)
+                    embedding = model.backbone.forward_proto(data, adapt_index=index)
+                    embedding_list.append(embedding.cpu())
+                    label_list.append(label.cpu())
+                    
+                embedding_list = torch.cat(embedding_list, dim=0)
+                label_list = torch.cat(label_list, dim=0)
+                class_list = np.unique(self.train_dataset_for_protonet.labels)
+                
+                # 预计算统计信息
+                all_sample_counts = []
+                all_variances = []
+                temp_protos = {}  # 临时存储原型用于类间距离计算
+                
+                # 第一遍：计算基础统计和临时原型
+                for class_index in class_list:
+                    data_index = (label_list == class_index).nonzero().squeeze(-1)
+                    embedding = embedding_list[data_index]
+                    sample_count = len(data_index)
+                    all_sample_counts.append(sample_count)
+                    
+                    if sample_count > 1:
+                        variance = torch.var(embedding, dim=0).mean().item()
+                        all_variances.append(variance)
+                    
+                    # 存储临时原型
+                    temp_protos[class_index.item()] = embedding.mean(0)
+                
+                max_count = max(all_sample_counts)
+                mean_variance = np.mean(all_variances) if all_variances else 1.0
+                
+                # 第二遍：计算细化的原型，考虑类间关系
+                refined_protos = {}
+                processed_classes = []
+                
+                for class_index in class_list:
+                    data_index = (label_list == class_index).nonzero().squeeze(-1)
+                    embedding = embedding_list[data_index]
+                    sample_count = len(data_index)
+                    
+                    # 获取已处理的类的原型用于距离计算
+                    existing_protos = [refined_protos[cls] for cls in processed_classes]
+                    
+                    # 计算增强区分性的原型
+                    proto_refined = self._compute_comprehensive_proto(
+                        embedding, sample_count, max_count, mean_variance,
+                        class_index, existing_protos
+                    )
+                    
+                    refined_protos[class_index.item()] = proto_refined
+                    processed_classes.append(class_index.item())
+                    
+                    self.class_proto = torch.cat((self.class_proto, proto_refined.unsqueeze(0).to(self._device)), dim=0)
+                    
+                    # 更新分类器权重
+                    if self.use_init_ptm:
+                        model.fc.weight.data[class_index, (index+1)*self._network.out_dim:(index+2)*self._network.out_dim] = proto_refined
+                    else:
+                        model.fc.weight.data[class_index, index*self._network.out_dim:(index+1)*self._network.out_dim] = proto_refined
+        
+        return
     
     def incremental_train(self, data_manager):
         self._cur_task += 1
