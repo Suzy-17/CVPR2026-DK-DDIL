@@ -1232,8 +1232,8 @@ class OurNet(BaseNet):
         return  out_new, out_teacher
 
     def forward(self, x, test=False):
-        if self.task_increments:
-            self.inc = self.task_increments[self._cur_task]
+        # if self.task_increments:
+        #     self.inc = self.task_increments[self._cur_task]
         if test == False:
             x = self.backbone.forward(x, False)
             # if self.W_rand is not None:
@@ -1248,7 +1248,7 @@ class OurNet(BaseNet):
             if self.args["moni_adam"] or (not self.args["use_reweight"]):
                 out = self.fc(x_input)
             else:
-                out = self.fc.forward_diagonal(x_input, cur_task=self._cur_task, alpha=self.alpha, init_cls=self.init_cls, inc=self.inc, use_init_ptm=self.use_init_ptm, beta=self.beta)
+                out = self.fc.forward_diagonal(x_input, cur_task=self._cur_task, alpha=self.alpha, init_cls=self.init_cls, inc=self.task_increments, use_init_ptm=self.use_init_ptm, beta=self.beta, dataset=self.args["dataset"])
                 # out = self.fc(x_input)
             out.update({"features": x_input})
             return out

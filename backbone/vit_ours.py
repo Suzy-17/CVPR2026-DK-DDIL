@@ -623,7 +623,8 @@ import copy
 class Adapter_lora(nn.Module): 
     def __init__(self,  
                  config=None, 
-                 d_model=None, 
+                 d_model=None,
+                 d_model_2=None, 
                  bottleneck=None, 
                  dropout=0., 
                  init_option="bert", 
@@ -636,7 +637,8 @@ class Adapter_lora(nn.Module):
                  reg_alpha: float = 0.1,
                  lora_alpha: float = 16.0): 
         super().__init__() 
-        self.n_embd = config.d_model if d_model is None else d_model 
+        self.n_embd = config.d_model if d_model is None else d_model
+        self.n_embd_2 = config.d_model if d_model_2 is None else d_model_2 
         self.max_rank = max_rank 
         self.min_rank = min_rank 
         temp = max(float(temp), 1e-2)
@@ -651,7 +653,7 @@ class Adapter_lora(nn.Module):
         self.random_orth = True
         # LoRA矩阵定义
         self.lora_A = nn.Linear(self.n_embd, max_rank, bias=False)
-        self.lora_B = nn.Linear(max_rank, self.n_embd, bias=False)
+        self.lora_B = nn.Linear(max_rank, self.n_embd_2, bias=False)
         
         if self.random_orth:
             random_matrix = torch.rand(self.n_embd, max_rank)
@@ -729,7 +731,7 @@ class Adapter_lora(nn.Module):
         # 验证一致性（调试用，可以删除）
         assert torch.sum(final_active_indices).item() == final_active_rank, \
             f"Inconsistency: active_indices sum {torch.sum(final_active_indices).item()} != active_rank {final_active_rank}"
-        
+        self.active_mask = final_mask
         return final_mask, final_active_indices, torch.tensor(final_active_rank, device=self.rank_scores.device)
 
     def forward(self, x): 
@@ -753,8 +755,8 @@ class Adapter_lora(nn.Module):
             # 添加dropout
             x_dropout = self.lora_dropout(x)
             x_dropout = F.normalize(x_dropout, p=2, dim=1)
-            A_weighted = F.normalize(A_weighted, p=2, dim=1)
-            B_weighted = F.normalize(B_weighted, p=2, dim=1)
+            # A_weighted = F.normalize(A_weighted, p=2, dim=1)
+            # B_weighted = F.normalize(B_weighted, p=2, dim=1)
             hidden = F.linear(x_dropout, A_weighted)
             output = F.linear(hidden, B_weighted)     # [batch, seq, n_embd]
             
@@ -766,8 +768,8 @@ class Adapter_lora(nn.Module):
                 
                 x = self.lora_dropout(x)
                 x = F.normalize(x, p=2, dim=1)
-                A_active = F.normalize(A_active, p=2, dim=1)
-                B_active = F.normalize(B_active, p=2, dim=1)
+                # A_active = F.normalize(A_active, p=2, dim=1)
+                # B_active = F.normalize(B_active, p=2, dim=1)
                 hidden = F.linear(x, A_active)
                 output = F.linear(hidden, B_active)
             else:
@@ -906,7 +908,7 @@ class Attention_lora(nn.Module):
             if block_weight is not None:
                 block_weight = block_weight
             else:
-                block_weight = torch.ones(3).cuda()
+                block_weight = torch.ones(4).cuda()
             if self.msa[0] == 1:
                 adapt_x = adapt[0](x)
                 q += block_weight[0] * adapt_x
@@ -932,6 +934,10 @@ class Attention_lora(nn.Module):
         attn_output = attn_output.view(B, self.num_heads, N, self.head_dim)
         attn_output = attn_output.transpose(1, 2)
         attn_output = attn_output.reshape(B, N, C)
+        if adapt is not None:
+            if self.msa[3] == 1:
+                adapt_x = adapt[3](attn_output)
+                attn_output = attn_output + block_weight[3] * adapt_x #  
 
         x = self.proj(attn_output)
         x = self.proj_drop(x)
@@ -968,13 +974,30 @@ class Block(nn.Module):
             x = x + self.drop_path(
                 self.attn(self.norm1(x), adapt, prompt, rank_prompt, block_weight))
             residual = x
-            x = self.mlp_drop(self.act(self.fc1(self.norm2(x))))
-            x = self.drop_path(self.mlp_drop(self.fc2(x)))
-            x = residual + x
-            residual = x
-            if self.msa[3] == 1 and adapt is not None:
-                x = self.mlp_drop(adapt[3](x))
-            x = residual + x
+            hidden = self.fc1(self.norm2(x))
+
+            # fc1 lora
+            if adapt is not None and len(adapt) > 4 and self.msa[4] == 1:
+                if block_weight is None:
+                    block_weight = torch.ones(len(adapt)).to(hidden.device)
+                adapt_x = adapt[4](self.norm2(x))
+                hidden = hidden + adapt_x
+
+            hidden = self.act(hidden)
+            hidden = self.mlp_drop(hidden)
+
+            out = self.fc2(hidden)
+
+            # fc2 lora
+            if adapt is not None and len(adapt) > 5 and self.msa[5] == 1:
+                if block_weight is None:
+                    block_weight = torch.ones(len(adapt)).to(out.device)
+                adapt_x = adapt[5](hidden)
+                out = out + adapt_x
+
+            out = self.mlp_drop(out)
+            x = residual + self.drop_path(out)
+
         return x
 
 
@@ -1019,7 +1042,7 @@ class VisionTransformer(nn.Module):
 
         if self.use_block_weight:
             self.block_weight_list = []
-            self.block_weight = nn.Parameter(torch.randn(3, len(self.specfic_pos)))
+            self.block_weight = nn.Parameter(torch.randn(4, len(self.specfic_pos)))
             nn.init.uniform_(self.block_weight, .5, 1.5)
 
 
@@ -1115,9 +1138,21 @@ class VisionTransformer(nn.Module):
         if config.ffn_adapt:
             for i in range(len(self.adapt_pos)):
                 temp_adapter = nn.ModuleList()
-                for j in self.msa:
-                    if j ==1:
+                for j in range(len(self.msa)):
+                    if self.msa[j] ==1 and j not in [4,5]:
                         adapter = Adapter_lora(self.config, dropout=0.0, bottleneck=config.ffn_num,
+                                                init_option=config.ffn_adapter_init_option,
+                                                adapter_scalar=config.ffn_adapter_scalar,
+                                                adapter_layernorm_option=config.ffn_adapter_layernorm_option,
+                                                ).to(self._device)
+                    elif self.msa[j] ==1 and j==4:
+                        adapter = Adapter_lora(self.config, d_model_2=3072,dropout=0.0, bottleneck=config.ffn_num,
+                                                init_option=config.ffn_adapter_init_option,
+                                                adapter_scalar=config.ffn_adapter_scalar,
+                                                adapter_layernorm_option=config.ffn_adapter_layernorm_option,
+                                                ).to(self._device)
+                    elif self.msa[j] ==1 and j==5:
+                        adapter = Adapter_lora(self.config, d_model=3072, d_model_2=self.config.d_model,dropout=0.0, bottleneck=config.ffn_num,
                                                 init_option=config.ffn_adapter_init_option,
                                                 adapter_scalar=config.ffn_adapter_scalar,
                                                 adapter_layernorm_option=config.ffn_adapter_layernorm_option,
@@ -1139,13 +1174,27 @@ class VisionTransformer(nn.Module):
             for i in range(len(self.specfic_pos)):
                 pos = self.adapt_pos.index(self.specfic_pos[i])
                 temp_adapter = nn.ModuleList()
-                for j in self.msa:
-                    if j == 1:
+                for j in range(len(self.msa)):
+                    if self.msa[j] ==1 and j not in [4,5]:
                         adapter = Adapter_lora(self.config, dropout=0.0, bottleneck=config.ffn_num,
-                                               init_option=config.ffn_adapter_init_option,
-                                               adapter_scalar=config.ffn_adapter_scalar,
-                                               adapter_layernorm_option=config.ffn_adapter_layernorm_option,
-                                               ).to(self._device)
+                                                init_option=config.ffn_adapter_init_option,
+                                                adapter_scalar=config.ffn_adapter_scalar,
+                                                adapter_layernorm_option=config.ffn_adapter_layernorm_option,
+                                                ).to(self._device)
+                        adapter.requires_grad_(True)
+                    elif self.msa[j] ==1 and j==4:
+                        adapter = Adapter_lora(self.config, d_model_2=3072,dropout=0.0, bottleneck=config.ffn_num,
+                                                init_option=config.ffn_adapter_init_option,
+                                                adapter_scalar=config.ffn_adapter_scalar,
+                                                adapter_layernorm_option=config.ffn_adapter_layernorm_option,
+                                                ).to(self._device)
+                        adapter.requires_grad_(True)
+                    elif self.msa[j] ==1 and j==5:
+                        adapter = Adapter_lora(self.config, d_model=3072, d_model_2=self.config.d_model,dropout=0.0, bottleneck=config.ffn_num,
+                                                init_option=config.ffn_adapter_init_option,
+                                                adapter_scalar=config.ffn_adapter_scalar,
+                                                adapter_layernorm_option=config.ffn_adapter_layernorm_option,
+                                                ).to(self._device)
                         adapter.requires_grad_(True)
                     else:
                         adapter = nn.Identity()
@@ -1175,7 +1224,7 @@ class VisionTransformer(nn.Module):
         if self.use_block_weight:
             self.block_weight_old = copy.deepcopy(self.block_weight)
             self.block_weight_list.append(self.block_weight_old.requires_grad_(False))
-            self.block_weight = nn.Parameter(torch.randn(3, len(self.specfic_pos)))
+            self.block_weight = nn.Parameter(torch.randn(4, len(self.specfic_pos)))
             nn.init.uniform_(self.block_weight, .5, 1.5)
             print(self.block_weight_list)
 

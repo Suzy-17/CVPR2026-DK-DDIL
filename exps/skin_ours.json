@@ -1,5 +1,5 @@
 {
-    "prefix": "vds_only_cl_gen_spec_0_11_5_proto_loss_1111_reg_1030301_nosmooth_newreplacefc3v3",
+    "prefix": "vds_only_cl_gen_spec_0_11_5_proto_loss_111111_reg_1030010_nosmooth_newreplacefc3v1",
     "dataset": "SKIN",
     "task_name": ["PH2", "MSK", "clinic_D7P", "derm_D7P", "HAM", "BCN", "OTHERS", "clinical", "dermoscopic"],
     "increment_per_session": [2,3,6,6,8,8,8,11,11],  
@@ -25,7 +25,7 @@
     "min_lr": 0,
     "margin": 0.3,
     "alpha_loss": 1.0,
-    "beta_loss": 0.3,
+    "beta_loss": 0.0,
     "gamma": 1.0,
     "curriculum_learning": true,
     "adaptive_temp": true,
@@ -53,7 +53,7 @@
     "msa_adapt": true,
     "use_distillation": true,
     "use_block_weight": true,
-    "msa":[1,1,1,1],
+    "msa":[1,1,1,1,0,0],
     "general_pos":[],
-    "specfic_pos": [0,1,2,3,4,5,6,7,8,9,11]
+    "specfic_pos": [0,1,2,3,4,5,6,7,8,9,10,11]
 }

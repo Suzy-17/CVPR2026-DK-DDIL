@@ -937,55 +937,55 @@ class DomainContrastiveLoss(nn.Module):
         # ------------------
         # 2b) 跨域负分离（使用 prev_proto），已知标签时阻止同类原型作为负样本
         # ------------------
-        if curr_beta > 0 and prev_proto is not None and prev_proto.size(0) > 0:
-            prev_norms = torch.norm(prev_proto, p=2, dim=1)
-            prev_valid_mask = (prev_norms > 1e-6) & (prev_norms < 1e6)
+        # if curr_beta > 0 and prev_proto is not None and prev_proto.size(0) > 0:
+        #     prev_norms = torch.norm(prev_proto, p=2, dim=1)
+        #     prev_valid_mask = (prev_norms > 1e-6) & (prev_norms < 1e6)
 
-            if prev_valid_mask.sum() > 0:
-                prev_proto_norm = F.normalize(prev_proto, p=2, dim=1)
-                prev_proto_norm = prev_proto_norm[prev_valid_mask]
+        #     if prev_valid_mask.sum() > 0:
+        #         prev_proto_norm = F.normalize(prev_proto, p=2, dim=1)
+        #         prev_proto_norm = prev_proto_norm[prev_valid_mask]
 
-                if prev_proto_labels is not None:
-                    prev_labels_valid = prev_proto_labels[prev_valid_mask]
-                    # logits (B, P_valid)
-                    logits_prev = torch.matmul(f_norm, prev_proto_norm.t())
-                    temp_prev = float(self.get_adaptive_temperature(logits_prev)) * 2.0
-                    logits_prev = logits_prev / temp_prev
+        #         if prev_proto_labels is not None:
+        #             prev_labels_valid = prev_proto_labels[prev_valid_mask]
+        #             # logits (B, P_valid)
+        #             logits_prev = torch.matmul(f_norm, prev_proto_norm.t())
+        #             temp_prev = float(self.get_adaptive_temperature(logits_prev)) * 2.0
+        #             logits_prev = logits_prev / temp_prev
 
-                    # 对于与当前样本同类的历史原型，我们将其 mask 掉（防止被当作负样本）
-                    # 构建 mask (B, P_valid)
-                    # prev_labels_valid: (P_valid,)
-                    mask_same = (labels.unsqueeze(1).to(device) == prev_labels_valid.unsqueeze(0).to(device))
-                    logits_prev = logits_prev.masked_fill(mask_same, -1e9)
+        #             # 对于与当前样本同类的历史原型，我们将其 mask 掉（防止被当作负样本）
+        #             # 构建 mask (B, P_valid)
+        #             # prev_labels_valid: (P_valid,)
+        #             mask_same = (labels.unsqueeze(1).to(device) == prev_labels_valid.unsqueeze(0).to(device))
+        #             logits_prev = logits_prev.masked_fill(mask_same, -1e9)
 
-                    # 推远历史不同类原型的简单但稳定的做法：对每个样本计算 logsumexp 并平均
-                    # 这会鼓励这些相似度整体较低
-                    # 使用较小权重避免误伤
-                    lse_per_sample = torch.logsumexp(logits_prev, dim=1)  # (B,)
+        #             # 推远历史不同类原型的简单但稳定的做法：对每个样本计算 logsumexp 并平均
+        #             # 这会鼓励这些相似度整体较低
+        #             # 使用较小权重避免误伤
+        #             lse_per_sample = torch.logsumexp(logits_prev, dim=1)  # (B,)
 
-                    if class_weights is not None:
-                        sample_w = class_weights[labels].to(device)
-                    else:
-                        sample_w = torch.ones(B, device=device)
+        #             if class_weights is not None:
+        #                 sample_w = class_weights[labels].to(device)
+        #             else:
+        #                 sample_w = torch.ones(B, device=device)
 
-                    loss_cross = (lse_per_sample * sample_w).sum() / (sample_w.sum() + 1e-12)
-                    loss_neg_terms.append(self.cross_domain_weight * loss_cross)
+        #             loss_cross = (lse_per_sample * sample_w).sum() / (sample_w.sum() + 1e-12)
+        #             loss_neg_terms.append(self.cross_domain_weight * loss_cross)
 
-                else:
-                    # 未知历史标签 - 更保守的做法：对所有历史原型使用 logsumexp 且权重更小
-                    logits_prev = torch.matmul(f_norm, prev_proto_norm.t())
-                    temp_prev = float(self.get_adaptive_temperature(logits_prev)) * 3.0
-                    logits_prev = logits_prev / temp_prev
-                    lse_per_sample = torch.logsumexp(logits_prev, dim=1)
+        #         else:
+        #             # 未知历史标签 - 更保守的做法：对所有历史原型使用 logsumexp 且权重更小
+        #             logits_prev = torch.matmul(f_norm, prev_proto_norm.t())
+        #             temp_prev = float(self.get_adaptive_temperature(logits_prev)) * 3.0
+        #             logits_prev = logits_prev / temp_prev
+        #             lse_per_sample = torch.logsumexp(logits_prev, dim=1)
 
-                    if class_weights is not None:
-                        sample_w = class_weights[labels].to(device)
-                    else:
-                        sample_w = torch.ones(B, device=device)
+        #             if class_weights is not None:
+        #                 sample_w = class_weights[labels].to(device)
+        #             else:
+        #                 sample_w = torch.ones(B, device=device)
 
-                    loss_cross = (lse_per_sample * sample_w).sum() / (sample_w.sum() + 1e-12)
-                    # 更小权重
-                    loss_neg_terms.append(0.1 * loss_cross)
+        #             loss_cross = (lse_per_sample * sample_w).sum() / (sample_w.sum() + 1e-12)
+        #             # 更小权重
+        #             loss_neg_terms.append(0.1 * loss_cross)
 
         # combine negative terms
         if len(loss_neg_terms) > 0:
