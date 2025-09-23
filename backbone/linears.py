@@ -309,8 +309,12 @@ class CosineLinearFeature(nn.Module):
                 start_cls = 0
                 end_cls = init_cls
             else:
-                start_cls = init_cls + (i - 1) * inc
-                end_cls = start_cls + inc
+                if isinstance(inc,list):
+                    start_cls = init_cls + sum(inc[1:i]) #* inc
+                    end_cls = start_cls + inc[i]
+                else:
+                    start_cls = init_cls + (i - 1) * inc
+                    end_cls = start_cls + inc
             input1 = F.normalize(input[:, i * out_dim:(i + 1) * out_dim], p=2, dim=1)
             weight1 = F.normalize(self.weight[start_cls:end_cls, i * out_dim:(i + 1) * out_dim], p=2, dim=1)
             
