@@ -166,7 +166,15 @@ class BaseLearner(object):
             y_pred_grouped = convert_cumulative_to_real_labels(y_pred.reshape(-1), self.args["increment_per_session"], global_class_order=None)
             y_true_grouped = convert_cumulative_to_real_labels(y_true, self.args["increment_per_session"], global_class_order=None)
             cnn_accy_grouped = self._evaluate(y_pred_grouped.reshape(-1,1), y_true_grouped)
-        elif self.args['dataset'] == 'domainnet':
+        # elif self.args['dataset'] == 'domainnet':
+        #     y_pred_grouped = y_pred % self.args['increment']
+        #     y_true_grouped = y_true % self.args['increment']
+        #     cnn_accy_grouped = self._evaluate(y_pred_grouped.reshape(-1,1), y_true_grouped)
+        # elif self.args['dataset'] == 'cddb':
+        #     y_pred_grouped = y_pred % self.args['increment']
+        #     y_true_grouped = y_true % self.args['increment']
+        #     cnn_accy_grouped = self._evaluate(y_pred_grouped.reshape(-1,1), y_true_grouped)
+        elif self.args['dataset'] == 'officehome':
             y_pred_grouped = y_pred % self.args['increment']
             y_true_grouped = y_true % self.args['increment']
             cnn_accy_grouped = self._evaluate(y_pred_grouped.reshape(-1,1), y_true_grouped)

@@ -26,7 +26,7 @@ def load_json(setting_path):
 
 def setup_parser():
     parser = argparse.ArgumentParser(description='Reproduce of multiple pre-trained incremental learning algorithms.')
-    parser.add_argument('--config', type=str, default='exps/skin_ours_no_clinic.json',
+    parser.add_argument('--config', type=str, default='exps/domainnet_ours.json',
                         help='Json file of settings.')
     return parser
 

@@ -3,7 +3,7 @@ import numpy as np
 from PIL import Image
 from torch.utils.data import Dataset
 from torchvision import transforms
-from utils.data import iCIFAR10, iCIFAR100, iImageNet100, iImageNet1000, iCIFAR224, iImageNetR,iImageNetA,CUB, objectnet, omnibenchmark, vtab, food101, iGanFake, iCore50, iDomainNet, iOfficeHome, iSKIN, iMedMNISTv2
+from utils.data import iCIFAR10, iCIFAR100, iImageNet100, iImageNet1000, iCIFAR224, iImageNetR,iImageNetA,CUB, objectnet, omnibenchmark, vtab, food101, iGanFake, iCore50, iDomainNet, iOfficeHome, iSKIN, iMedMNISTv2, iCystX
 import io
 
 
@@ -269,6 +269,8 @@ def _get_idata(dataset_name, args=None):
         return iMedMNISTv2(args)
     elif name == 'officehome':
         return iOfficeHome(args)
+    elif name == 'cystx':
+        return iCystX(args)
     else:
         raise NotImplementedError("Unknown dataset {}.".format(dataset_name))
 

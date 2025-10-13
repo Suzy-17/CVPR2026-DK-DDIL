@@ -4,6 +4,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from sklearn.metrics import confusion_matrix, classification_report
+from typing import List, Optional, Union
 
 # class DomainContrastiveLoss(nn.Module):
 #     def __init__(self, margin=0.5, alpha=1.0, beta=1.0, gamma=0.3, temperature=0.07):
@@ -1436,4 +1437,365 @@ def split_domain_txt2txt(root_path, domain_name: str, train_ratio=0.7, seed=1993
         for line in test_lines:
             f.write(line)
             
+def weighted_federated_averaging(cur_adapter: nn.ModuleList,
+                               old_adapter_list: nn.ModuleList, 
+                               target_params: Optional[Union[str, List[str]]] = "lora_A",
+                               weights: Optional[List[float]] = None,
+                               layer_indices: Optional[List[int]] = None,
+                               adapter_indices: Optional[List[int]] = None):
+    """
+    加权版本的联邦参数平均，可以为不同的历史adapter分配不同权重
+    
+    Args:
+        weights: 历史adapter的权重列表，长度应等于old_adapter_list的长度
+                如果为None，则使用均等权重
+        target_params: 要平均的参数名，None表示所有参数
+    """
+    
+    if len(old_adapter_list) == 0:
+        print("没有历史adapter，跳过参数平均")
+        return
+    
+    # 设置权重
+    if weights is None:
+        weights = [1.0 / len(old_adapter_list)] * len(old_adapter_list)
+    else:
+        assert len(weights) == len(old_adapter_list), "权重数量必须等于历史adapter数量"
+        # 归一化权重
+        total_weight = sum(weights)
+        weights = [w / total_weight for w in weights]
+    
+    # 确保target_params是列表格式，或处理None的情况
+    if target_params is None:
+        # 获取第一个非Identity模块的所有参数名
+        target_params = []
+        for layer_idx in range(len(cur_adapter)):
+            for adapter_idx in range(len(cur_adapter[layer_idx])):
+                cur_module = cur_adapter[layer_idx][adapter_idx]
+                if not isinstance(cur_module, nn.Identity):
+                    param_names = [name for name, param in cur_module.named_parameters()]
+                    target_params.extend(param_names)
+                    break
+            if target_params:
+                break
+        target_params = list(set(target_params))
+        print(f"检测到的所有参数: {target_params}")
+    elif isinstance(target_params, str):
+        target_params = [target_params]
+    
+    # 默认处理所有层和adapter
+    if layer_indices is None:
+        layer_indices = list(range(len(cur_adapter)))
+    if adapter_indices is None:
+        adapter_indices = list(range(len(cur_adapter[0])))
+    
+    print(f"开始加权联邦平均，权重: {weights}")
+    print(f"处理参数: {target_params}")
+    
+    # 遍历指定的层和adapter
+    for layer_idx in layer_indices:
+        for adapter_idx in adapter_indices:
+            cur_module = cur_adapter[layer_idx][adapter_idx]
             
+            # 跳过Identity模块
+            if isinstance(cur_module, nn.Identity):
+                continue
+            
+            # 遍历要平均的参数
+            for param_name in target_params:
+                if not hasattr(cur_module, param_name):
+                    print(f"警告: 层{layer_idx}的adapter{adapter_idx}没有属性 {param_name}")
+                    continue
+                
+                cur_param = getattr(cur_module, param_name)
+                
+                # 情况1: target_name是Parameter
+                if isinstance(cur_param, nn.Parameter):
+                    # 收集并加权平均历史参数
+                    weighted_sum = torch.zeros_like(cur_param.data)
+                    valid_count = 0
+                    
+                    for i, old_adapter in enumerate(old_adapter_list):
+                        old_module = old_adapter[layer_idx][adapter_idx]
+                        if (not isinstance(old_module, nn.Identity) and 
+                            hasattr(old_module, param_name)):
+                            old_param = getattr(old_module, param_name)
+                            weighted_sum += weights[i] * old_param.data
+                            valid_count += 1
+                
+                    if valid_count > 0:
+                        # 更新当前参数为加权平均结果
+                        with torch.no_grad():
+                            cur_param.data = weighted_sum.clone()
+                        
+                        print(f"已更新 层{layer_idx}-adapter{adapter_idx}-{param_name} (加权平均)")
+                # 情况2: target_name是子模块(如Linear层)
+                elif isinstance(cur_param, nn.Module):
+                    # 对子模块的所有参数进行平均
+                    for param_name, cur_param in cur_param.named_parameters():
+                        # 收集并加权平均历史参数
+                        weighted_sum = torch.zeros_like(cur_param.data)
+                        valid_count = 0
+                        
+                        for i, old_adapter in enumerate(old_adapter_list):
+                            old_module = old_adapter[layer_idx][adapter_idx]
+                            if (not isinstance(old_module, nn.Identity) and 
+                                hasattr(old_module, param_name)):
+                                old_param = getattr(old_module, param_name)
+                                weighted_sum += weights[i] * old_param.data
+                                valid_count += 1
+                        
+                        if valid_count > 0:
+                            # 更新当前参数为加权平均结果
+                            with torch.no_grad():
+                                cur_param.data = weighted_sum.clone()
+                            
+                            print(f"已更新 层{layer_idx}-adapter{adapter_idx}-{param_name} (加权平均)")
+                else:
+                    print(f"警告: {cur_param} 既不是Parameter也不是Module，跳过")
+
+def selective_federated_averaging(cur_adapter: nn.ModuleList,
+                                old_adapter_list: nn.ModuleList,
+                                target_params: Optional[Union[str, List[str]]] = "lora_A", 
+                                similarity_threshold: float = 0.8,
+                                layer_indices: Optional[List[int]] = None,
+                                adapter_indices: Optional[List[int]] = None):
+    """
+    基于相似性的选择性联邦平均，只融合相似度高的历史adapter参数
+    
+    Args:
+        similarity_threshold: 相似度阈值，只有相似度超过此值的历史参数才参与平均
+        target_params: 要平均的参数名，None表示所有参数
+    """
+    
+    if len(old_adapter_list) == 0:
+        print("没有历史adapter，跳过参数平均")
+        return
+    
+    if isinstance(target_params, str):
+        target_params = [target_params]
+    elif target_params is None:
+        # 获取第一个非Identity模块的所有参数名
+        target_params = []
+        for layer_idx in range(len(cur_adapter)):
+            for adapter_idx in range(len(cur_adapter[layer_idx])):
+                cur_module = cur_adapter[layer_idx][adapter_idx]
+                if not isinstance(cur_module, nn.Identity):
+                    param_names = [name for name, param in cur_module.named_parameters()]
+                    target_params.extend(param_names)
+                    break
+            if target_params:
+                break
+        target_params = list(set(target_params))
+        print(f"检测到的所有参数: {target_params}")
+    
+    if layer_indices is None:
+        layer_indices = list(range(len(cur_adapter)))
+    if adapter_indices is None:
+        adapter_indices = list(range(len(cur_adapter[0])))
+    
+    print(f"开始选择性联邦平均，相似度阈值: {similarity_threshold}")
+    
+    for layer_idx in layer_indices:
+        for adapter_idx in adapter_indices:
+            cur_module = cur_adapter[layer_idx][adapter_idx]
+            
+            if isinstance(cur_module, nn.Identity):
+                continue
+            
+            for param_name in target_params:
+                if not hasattr(cur_module, param_name):
+                    print(f"警告: 层{layer_idx}的adapter{adapter_idx}没有属性 {param_name}")
+                    continue
+                
+                cur_param = getattr(cur_module, param_name)
+                # if not isinstance(cur_param, nn.Parameter):
+                #     continue
+                if isinstance(cur_param, nn.Parameter):
+                # 计算与历史参数的相似度并选择性平均
+                    similar_params = []
+                    for old_adapter in old_adapter_list:
+                        old_module = old_adapter[layer_idx][adapter_idx]
+                        if (not isinstance(old_module, nn.Identity) and 
+                            hasattr(old_module, param_name)):
+                            old_param = getattr(old_module, param_name)
+                            
+                            # 计算余弦相似度
+                            similarity = torch.cosine_similarity(
+                                cur_param.data.flatten(), 
+                                old_param.data.flatten(), 
+                                dim=0
+                            ).item()
+                            
+                            if similarity >= similarity_threshold:
+                                similar_params.append(old_param.data.clone())
+                    
+                    if similar_params:
+                        # 平均相似的参数
+                        avg_similar = torch.stack(similar_params, dim=0).mean(dim=0)
+                        
+                        with torch.no_grad():
+                            # 50-50混合当前参数和相似参数的平均
+                            cur_param.data = 0.5 * cur_param.data + 0.5 * avg_similar
+                        
+                        print(f"层{layer_idx}-adapter{adapter_idx}-{param_name}: "
+                            f"使用了{len(similar_params)}个相似参数进行平均")
+                # 情况2: target_name是子模块(如Linear层)
+                elif isinstance(cur_param, nn.Module):
+                    for param_name, cur_param in cur_param.named_parameters():
+                        similar_params = []
+                        for old_adapter in old_adapter_list:
+                            old_module = old_adapter[layer_idx][adapter_idx]
+                            if (not isinstance(old_module, nn.Identity) and 
+                                hasattr(old_module, param_name)):
+                                old_param = getattr(old_module, param_name)
+                                
+                                # 计算余弦相似度
+                                similarity = torch.cosine_similarity(
+                                    cur_param.data.flatten(), 
+                                    old_param.data.flatten(), 
+                                    dim=0
+                                ).item()
+                                
+                                if similarity >= similarity_threshold:
+                                    similar_params.append(old_param.data.clone())
+                        
+                        if similar_params:
+                            # 平均相似的参数
+                            avg_similar = torch.stack(similar_params, dim=0).mean(dim=0)
+                            
+                            with torch.no_grad():
+                                # 50-50混合当前参数和相似参数的平均
+                                cur_param.data = 0.5 * cur_param.data + 0.5 * avg_similar
+                            
+                            print(f"层{layer_idx}-adapter{adapter_idx}-{param_name}: "
+                                f"使用了{len(similar_params)}个相似参数进行平均")
+                else:
+                    print(f"警告: {cur_param} 既不是Parameter也不是Module，跳过")
+                        
+                    
+def federated_adapter_averaging(cur_adapter: nn.ModuleList, 
+                              old_adapter_list: nn.ModuleList,
+                              target_params: Optional[Union[str, List[str]]] = "lora_A",
+                              alpha: float = 0.5,
+                              layer_indices: Optional[List[int]] = None,
+                              adapter_indices: Optional[List[int]] = None):
+    """
+    使用联邦学习参数平均的思想融合历史adapter知识到当前adapter
+    
+    Args:
+        cur_adapter: 当前域的adapter (ModuleList)
+        old_adapter_list: 历史域的adapter列表 (ModuleList of ModuleList)
+        target_params: 要平均的参数名，可以是字符串或列表，None表示所有参数
+                      例如: "lora_A", "lora_B", ["lora_A", "lora_B"], None
+        alpha: 融合权重，cur_param = alpha * cur_param + (1-alpha) * avg_old_params
+        layer_indices: 指定要处理的层索引，None表示所有层
+        adapter_indices: 指定要处理的adapter索引，None表示所有adapter
+    """
+    
+    if len(old_adapter_list) == 0:
+        print("没有历史adapter，跳过参数平均")
+        return
+    
+    # 确保target_params是列表格式，或处理None的情况
+    if target_params is None:
+        # 获取第一个非Identity模块的所有参数名
+        target_params = []
+        for layer_idx in range(len(cur_adapter)):
+            for adapter_idx in range(len(cur_adapter[layer_idx])):
+                cur_module = cur_adapter[layer_idx][adapter_idx]
+                if not isinstance(cur_module, nn.Identity):
+                    # 获取该模块的所有参数名
+                    param_names = [name for name, param in cur_module.named_parameters()]
+                    submodule_names = [name for name, module in cur_module.named_children()]
+                    target_params.extend(param_names + submodule_names)
+                    target_params.extend(param_names)
+                    break
+            if target_params:  # 找到参数后跳出
+                break
+        
+        # 去重
+        target_params = list(set(target_params))
+        print(f"检测到的所有参数: {target_params}")
+        
+    elif isinstance(target_params, str):
+        target_params = [target_params]
+    
+    # 默认处理所有层和adapter
+    if layer_indices is None:
+        layer_indices = list(range(len(cur_adapter)))
+    if adapter_indices is None:
+        adapter_indices = list(range(len(cur_adapter[0])))
+    
+    print(f"开始联邦平均，处理参数: {target_params}")
+    print(f"处理层: {layer_indices}, 处理adapter: {adapter_indices}")
+    print(f"历史adapter数量: {len(old_adapter_list)}, 融合权重alpha: {alpha}")
+    
+    # 遍历指定的层和adapter
+    for layer_idx in layer_indices:
+        for adapter_idx in adapter_indices:
+            cur_module = cur_adapter[layer_idx][adapter_idx]
+            
+            # 跳过Identity模块
+            if isinstance(cur_module, nn.Identity):
+                continue
+            
+            # 遍历要平均的参数
+            for target_name in target_params:
+                if not hasattr(cur_module, target_name):
+                    print(f"警告: 层{layer_idx}的adapter{adapter_idx}没有参数 {target_name}")
+                    continue
+                
+                target_attr = getattr(cur_module, target_name)
+                
+                # 情况1: target_name是Parameter
+                if isinstance(target_attr, nn.Parameter):
+                    # 收集所有历史adapter的对应参数
+                    old_params = []
+                    for old_adapter in old_adapter_list:
+                        old_module = old_adapter[layer_idx][adapter_idx]
+                        if (not isinstance(old_module, nn.Identity) and 
+                            hasattr(old_module, target_name)):
+                            old_param = getattr(old_module, target_name)
+                            if isinstance(old_param, nn.Parameter):
+                                old_params.append(old_param.data.clone())
+                    
+                    if old_params:
+                        # 计算历史参数的平均值
+                        avg_old_param = torch.stack(old_params, dim=0).mean(dim=0)
+                        
+                        # 联邦平均: 当前参数 = α * 当前参数 + (1-α) * 平均历史参数
+                        with torch.no_grad():
+                            target_attr.data = alpha * target_attr.data + (1 - alpha) * avg_old_param
+                        
+                        print(f"已更新参数 层{layer_idx}-adapter{adapter_idx}-{target_name}")
+                
+                # 情况2: target_name是子模块(如Linear层)
+                elif isinstance(target_attr, nn.Module):
+                    # 对子模块的所有参数进行平均
+                    for param_name, cur_param in target_attr.named_parameters():
+                        # 收集历史对应子模块的同名参数
+                        old_params = []
+                        for old_adapter in old_adapter_list:
+                            old_module = old_adapter[layer_idx][adapter_idx]
+                            if (not isinstance(old_module, nn.Identity) and 
+                                hasattr(old_module, target_name)):
+                                old_submodule = getattr(old_module, target_name)
+                                if isinstance(old_submodule, nn.Module):
+                                    # 获取对应参数
+                                    old_param_dict = dict(old_submodule.named_parameters())
+                                    if param_name in old_param_dict:
+                                        old_params.append(old_param_dict[param_name].data.clone())
+                        
+                        if old_params:
+                            # 计算历史参数的平均值
+                            avg_old_param = torch.stack(old_params, dim=0).mean(dim=0)
+                            
+                            # 联邦平均
+                            with torch.no_grad():
+                                cur_param.data = alpha * cur_param.data + (1 - alpha) * avg_old_param
+                            
+                            # print(f"已更新子模块参数 层{layer_idx}-adapter{adapter_idx}-{target_name}.{param_name}")
+                
+                else:
+                    print(f"警告: {target_name} 既不是Parameter也不是Module，跳过")

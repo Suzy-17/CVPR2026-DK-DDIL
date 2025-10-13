@@ -4,6 +4,7 @@ from utils.toolkit import split_images_labels, write_domain_img_file2txt, split_
 import os
 import logging
 from utils.core50data import CORE50
+from collections import defaultdict  # 新增类别计数器 debug使用
 
 
 class iData(object):
@@ -265,9 +266,13 @@ class iDomainNet(iData):
                     else:  # correct the label for DIL tasks
                         img_label = img_label + taskid * self.cl_n_inc
                     imgs.append((entry.split()[0], img_label))
-
+            # class_counter = defaultdict(int)  # 新增类别计数器 debug使用
             img_x, img_y = [], []
             for item in imgs:
+                # current_class = item[1]
+                # if class_counter[current_class] >= 10:  # 达到上限跳过
+                #     continue
+                # class_counter[current_class] += 1  # 增加类别计数
                 img_x.append(os.path.join(self.image_list_root, item[0]))
                 img_y.append(item[1])
 
@@ -877,3 +882,85 @@ class food101(iData):
 
         self.train_data, self.train_targets = split_images_labels(train_dset.imgs)
         self.test_data, self.test_targets = split_images_labels(test_dset.imgs)
+
+class iCystX(iData):
+    use_path = True
+    train_trsf = [
+        transforms.RandomResizedCrop(224),
+        transforms.RandomHorizontalFlip(),
+    ]
+    test_trsf = [
+        transforms.Resize(256),
+        transforms.CenterCrop(224),
+    ]
+    common_trsf = [
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+    ]
+
+    def __init__(self, args):
+        self.args = args
+        class_order = np.arange(sum(args.get("increment_per_session", [args["increment"]]*args["total_sessions"]))).tolist()
+        self.class_order = class_order
+        self.nb_sessions = args["total_sessions"]
+
+        # 修改后：支持不同session的不同增量
+        self.cl_n_inc = args.get("increment_per_session", [self.args["increment"]]*self.nb_sessions)
+        # 校验增量配置长度
+        if len(self.cl_n_inc) != self.nb_sessions:
+            raise ValueError(f"increment_per_session长度({len(self.cl_n_inc)})与total_sessions({self.nb_sessions})不匹配")
+        
+        
+        if "task_name" in args and args["task_name"] is not None:
+            self.domain_names = args["task_name"]
+        else:
+            self.domain_names = ["NYU", "MCF", "NU", "AHN", "MCA", "IU", "EMC", ]
+        self.class_incremental = True if "class_incremental" in args and args["class_incremental"] else False
+
+        logging.info("Learning sequence of domains: {}".format(self.domain_names))
+
+    def download_data(self):
+
+        def _read_data(image_list_paths) -> (np.ndarray, np.ndarray):
+            imgs = []
+            cumulative_inc = 0  # 维护累计增量
+            for taskid, image_list_path in enumerate(image_list_paths):
+                if taskid >= self.nb_sessions:
+                    break
+                current_inc = self.cl_n_inc[taskid]  # 当前session的增量
+                with open(image_list_path) as f:
+                    image_list = f.readlines()
+                # 重写 target class := original value + taskid * args["increment"]
+                for entry in image_list:
+                    img_label = int(entry.split()[1])
+
+                    # 类增量模式筛选
+                    if self.class_incremental:
+                        # 只保留当前增量区间内的样本
+                        if not (0 <= img_label < current_inc):
+                            continue
+                    else:
+                        # 域增量模式校验
+                        if img_label >= current_inc:
+                            raise ValueError(f"当前session增量数不足: {img_label} >= {current_inc}")
+                    
+                    # 标签重映射：原始标签 + 累计增量
+                    remapped_label = img_label + cumulative_inc
+                    imgs.append((entry.split()[0], remapped_label))
+                
+                cumulative_inc += current_inc  # 更新累计增量
+
+            img_x, img_y = [], []
+            for item in imgs:
+                img_x.append(os.path.join(self.image_list_root, item[0]))
+                img_y.append(item[1])
+
+            return np.array(img_x), np.array(img_y)
+
+        self.image_list_root = self.args["data_path"]
+
+        image_list_paths = [os.path.join(self.image_list_root, d + "_" + "train" + ".txt") for d in self.domain_names]
+        self.train_data, self.train_targets = _read_data(image_list_paths)
+
+        image_list_paths = [os.path.join(self.image_list_root, d + "_" + "test" + ".txt") for d in self.domain_names]
+        self.test_data, self.test_targets = _read_data(image_list_paths)
