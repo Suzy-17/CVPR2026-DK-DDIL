@@ -8,5 +8,9 @@
 # python /Ds/xmu/mayuxi/CL/CVPR25-CL-LoRA/main.py --config exps/cllora_skin.json
 # python /Ds/xmu/mayuxi/CL/CVPR25-CL-LoRA/main.py --config exps/cllora_skin_no_clinic.json
 
-python /Ds/xmu/mayuxi/CL/CVPR25-CL-LoRA/main.py --config exps/cddb_ours.json
-python /Ds/xmu/mayuxi/CL/CVPR25-CL-LoRA/main.py --config exps/officehome_ours.json
+# python /Ds/xmu/mayuxi/CL/CVPR25-CL-LoRA/main.py --config exps/cddb_ours.json
+# python /Ds/xmu/mayuxi/CL/CVPR25-CL-LoRA/main.py --config exps/officehome_ours.json
+# python /Ds/xmu/mayuxi/CL/CVPR25-CL-LoRA/main.py --config exps/cystx_ours.json
+# python /Ds/xmu/mayuxi/CL/CVPR25-CL-LoRA/main.py --config exps/cllora/cystx.json
+# python /Ds/xmu/mayuxi/CL/CVPR25-CL-LoRA/main.py --config exps/cllora/officehome.json
+python /Ds/xmu/mayuxi/CL/CVPR25-CL-LoRA/main.py --config exps/cllora/skin.json

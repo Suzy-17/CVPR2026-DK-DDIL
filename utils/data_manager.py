@@ -3,7 +3,7 @@ import numpy as np
 from PIL import Image
 from torch.utils.data import Dataset
 from torchvision import transforms
-from utils.data import iCIFAR10, iCIFAR100, iImageNet100, iImageNet1000, iCIFAR224, iImageNetR,iImageNetA,CUB, objectnet, omnibenchmark, vtab, food101, iGanFake, iCore50, iDomainNet, iOfficeHome, iSKIN, iMedMNISTv2, iCystX
+from utils.data import iCIFAR10, iCIFAR100, iImageNet100, iImageNet1000, iCIFAR224, iImageNetR,iImageNetA,CUB, objectnet, omnibenchmark, vtab, food101, iGanFake, iCore50, iDomainNet, iOfficeHome, iSKIN, iMedMNISTv2, iCystX,iCHEST
 import io
 
 
@@ -205,7 +205,6 @@ class DataManager(object):
         return np.sum(np.where(y == index))
 
 
-
 class DummyDataset(Dataset):
     def __init__(self, images, labels, trsf, use_path=False):
         assert len(images) == len(labels), "Data size error!"
@@ -218,11 +217,38 @@ class DummyDataset(Dataset):
         return len(self.images)
 
     def __getitem__(self, idx):
+        
+        # if self.is_3d or (
+        #     self.use_path and isinstance(self.images[idx], str)
+        #     and (self.images[idx].endswith(".nii") or self.images[idx].endswith(".nii.gz"))
+        # ):
+        #     # 1-加载 nii.gz 图像
+        #     img = nib.load(self.images[idx])
+        #     img_data = img.get_fdata()  # numpy array, (D, H, W)
+
+        #     # 2-转换为 torch 张量并添加维度 -> [1, D, H, W]
+        #     img_tensor = torch.tensor(img_data, dtype=torch.float32).unsqueeze(0)
+
+        #     # 3-调整空间大小，以便整除卷积核（16x16x8）
+        #     img_resized = self.resize_3d(img_tensor)  # [1, 64, 48, 8]
+
+        #     # 4-应用 transform（如标准化、ToTensor等）
+        #     if self.trsf is not None:
+        #         # 这里假设 trsf 支持 torch.Tensor 输入（MONAI 一般支持）
+        #         img_resized = self.trsf(img_resized)
+
+        #     return idx, img_resized, label
+        label = self.labels[idx]
+
+        if isinstance(self.images[idx], str) and (self.images[idx].endswith(".nii") or self.images[idx].endswith(".nii.gz")):
+            img = self.trsf(self.images[idx])  # MONAI Compose 自动完成读取与处理
+            return idx, img, label
+    
         if self.use_path:
             image = self.trsf(pil_loader(self.images[idx]))
         else:
             image = self.trsf(Image.fromarray(self.images[idx]))
-        label = self.labels[idx]
+
 
         return idx, image, label
 
@@ -265,6 +291,8 @@ def _get_idata(dataset_name, args=None):
         return iDomainNet(args)
     elif name == 'skin':
         return iSKIN(args)
+    elif name == 'chest':
+        return iCHEST(args)
     elif name == 'medmnist':
         return iMedMNISTv2(args)
     elif name == 'officehome':

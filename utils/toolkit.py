@@ -6,786 +6,6 @@ import torch.nn.functional as F
 from sklearn.metrics import confusion_matrix, classification_report
 from typing import List, Optional, Union
 
-# class DomainContrastiveLoss(nn.Module):
-#     def __init__(self, margin=0.5, alpha=1.0, beta=1.0, gamma=0.3, temperature=0.07):
-#         """
-#         改进的域对比损失 (支持类别不平衡 + 跨域正对齐)
-#         Args:
-#             margin: 负约束的最小余弦距离
-#             alpha: 正对齐损失权重
-#             beta: 负分离损失权重
-#             gamma: 类内紧凑性损失权重
-#             temperature: 相似度分布锐化系数
-#         """
-#         super().__init__()
-#         self.margin = margin
-#         self.alpha = alpha
-#         self.beta = beta
-#         self.gamma = gamma
-#         self.temperature = temperature
-
-#     def forward(self, features, labels=None, cur_proto=None, prev_proto=None, all_proto_labels=None, class_weights=None):
-#         """
-#         Args:
-#             features: [B, D] 当前 batch 特征
-#             labels:   [B] 当前 batch 标签
-#             cur_proto: [C1, D] 当前任务类别原型
-#             prev_proto: [C2, D] 历史任务类别原型
-#             all_proto_labels: [C1 + C2] 所有原型对应的类别标签
-#             class_weights: [num_classes] 每个类别的权重 (解决类别不平衡)
-#         """
-#         B, D = features.size()
-#         f_norm = F.normalize(features, p=2, dim=1)
-
-#         loss_dict = {"loss_pos": 0.0, "loss_neg": 0.0, "loss_intra": 0.0}
-#         total_loss = torch.tensor(0.0, device=features.device)
-
-#         # ==================================================
-#         # 1. 组织所有原型 (当前 + 历史)
-#         # ==================================================
-#         all_proto = []
-#         if cur_proto is not None:
-#             all_proto.append(cur_proto)
-#         if prev_proto is not None and prev_proto.size(0) > 0:
-#             all_proto.append(prev_proto)
-
-#         if len(all_proto) > 0:
-#             all_proto = torch.cat(all_proto, dim=0)  # [C_all, D]
-#             all_proto_norm = F.normalize(all_proto, p=2, dim=1)  # 单位化
-#         else:
-#             all_proto, all_proto_norm = None, None
-
-#         # ==================================================
-#         # 2. 正对齐损失 (跨域同类原型对齐)
-#         # ==================================================
-#         if all_proto is not None and labels is not None and all_proto_labels is not None:
-#             pos_losses = []
-#             for i in range(B):
-#                 # 找到该样本对应的所有同类原型
-#                 same_class_mask = (all_proto_labels == labels[i])
-#                 same_class_proto = all_proto_norm[same_class_mask]
-
-#                 if same_class_proto.size(0) > 0:
-#                     # 与同类所有原型计算相似度
-#                     pos_sim = torch.matmul(f_norm[i], same_class_proto.t())
-#                     pos_loss = (1 - pos_sim).clamp(min=0).mean()
-
-#                     # 类别权重 (如果提供)
-#                     if class_weights is not None:
-#                         pos_loss = pos_loss * class_weights[labels[i]]
-
-#                     pos_losses.append(pos_loss)
-
-#             if len(pos_losses) > 0:
-#                 loss_pos = torch.stack(pos_losses).mean()
-#                 total_loss += self.alpha * loss_pos
-#                 loss_dict["loss_pos"] = loss_pos.item()
-
-#         # ==================================================
-#         # 3. 负分离损失 (与异类原型分离)
-#         # ==================================================
-#         if all_proto is not None and labels is not None and all_proto_labels is not None:
-#             neg_losses = []
-#             for i in range(B):
-#                 # 找到该样本对应的所有异类原型
-#                 diff_class_mask = (all_proto_labels != labels[i])
-#                 diff_class_proto = all_proto_norm[diff_class_mask]
-
-#                 if diff_class_proto.size(0) > 0:
-#                     # 相似度 (加温度)
-#                     neg_sim = torch.matmul(f_norm[i], diff_class_proto.t()) / self.temperature
-#                     neg_dist = 1 - neg_sim  # 余弦距离
-
-#                     # 选择最难负样本 (最近的异类原型)
-#                     hard_neg_dist, _ = neg_dist.min(dim=0)
-#                     neg_loss = F.relu(self.margin - hard_neg_dist).mean()
-
-#                     # 类别权重
-#                     if class_weights is not None:
-#                         neg_loss = neg_loss * class_weights[labels[i]]
-
-#                     neg_losses.append(neg_loss)
-
-#             if len(neg_losses) > 0:
-#                 loss_neg = torch.stack(neg_losses).mean()
-#                 total_loss += self.beta * loss_neg
-#                 loss_dict["loss_neg"] = loss_neg.item()
-
-#         # ==================================================
-#         # 4. 类内紧凑性损失 (batch 内同类样本保持紧凑)
-#         # ==================================================
-#         if labels is not None and B > 1:
-#             same_class = labels.unsqueeze(0) == labels.unsqueeze(1)
-#             same_class.fill_diagonal_(False)
-
-#             if same_class.sum() > 0:
-#                 intra_sim = torch.mm(f_norm, f_norm.t())
-#                 intra_loss = (1 - intra_sim[same_class]).mean()
-
-#                 total_loss += self.gamma * intra_loss
-#                 loss_dict["loss_intra"] = intra_loss.item()
-
-#         return total_loss, loss_dict
-
-# class DomainContrastiveLoss(nn.Module):
-#     def __init__(self, margin=0.5, alpha=1.0, beta=0.0, gamma=0.3, temperature=0.07):
-#         """
-#         改进的域对比损失
-#         Args:
-#             margin: 负约束的最小余弦距离
-#             alpha: 正对齐损失权重
-#             beta: 负分离损失权重
-#             gamma: 类内紧凑性损失权重
-#             temperature: 相似度分布锐化系数
-#         """
-#         super().__init__()
-#         self.margin = margin
-#         self.alpha = alpha
-#         self.beta = beta
-#         self.gamma = gamma
-#         self.temperature = temperature
-
-#     def forward(self, features, labels=None, cur_proto=None, prev_proto=None, class_weights=None):
-#         B, D = features.size()
-#         f_norm = F.normalize(features, p=2, dim=1)
-        
-#         loss_dict = {"loss_pos": 0.0, "loss_neg": 0.0, "loss_intra": 0.0}
-#         total_loss = torch.tensor(0.0, device=features.device)
-
-#         # ======================
-#         # 1. 正对齐损失
-#         # ======================
-#         if cur_proto is not None and labels is not None:
-#             # 检查原型有效性
-#             proto_norms = torch.norm(cur_proto, p=2, dim=1)
-#             valid_mask = (proto_norms > 1e-3) & (proto_norms < 100)  # 防止极端值
-            
-#             cur_proto_norm = F.normalize(cur_proto, p=2, dim=1)
-#             pos_proto = cur_proto_norm[labels]
-            
-#             # 计算余弦相似度
-#             pos_sim = (f_norm * pos_proto).sum(dim=1)
-            
-#             # 只对有效原型的样本计算损失
-#             valid_samples = valid_mask[labels]
-#             if valid_samples.sum() > 0:
-#                 pos_loss = (1 - pos_sim).clamp(min=0)
-#                 # 应用类别权重
-#                 if class_weights is not None:
-#                     sample_weights = class_weights[labels][valid_samples]
-#                     loss_pos = (pos_loss * valid_samples * sample_weights).sum() / (sample_weights.sum() + 1e-8)
-#                 else:
-#                     loss_pos = (pos_loss * valid_samples).sum() / (valid_samples.sum() + 1e-8)
-#                 total_loss += self.alpha * loss_pos
-#                 loss_dict["loss_pos"] = loss_pos.item()
-        
-#         # ======================
-#         # 2. 负分离损失
-#         # ======================
-#         if prev_proto is not None and prev_proto.size(0) > 0:
-#             # 检查历史原型有效性
-#             prev_norms = torch.norm(prev_proto, p=2, dim=1)
-#             prev_valid = prev_norms > 1e-3
-#             prev_proto_norm = F.normalize(prev_proto, p=2, dim=1)[prev_valid]
-            
-#             if prev_proto_norm.size(0) > 0:
-#                 # 计算带温度的相似度矩阵
-#                 sim_matrix = F.linear(f_norm, prev_proto_norm) / self.temperature
-#                 cos_dist = 1.0 - sim_matrix
-                
-#                 # 类别感知的负样本选择
-#                 if class_weights is not None:
-#                     # 计算任务权重（简单示例：最近的任务权重更高）
-#                     sample_weights = class_weights[labels]
-#                     task_weights = torch.linspace(1.0, 0.5, steps=prev_proto_norm.size(0), device=features.device)
-#                     # 组合权重
-#                     combined_weights = sample_weights.unsqueeze(1) * task_weights.unsqueeze(0)
-#                     # 应用权重到距离矩阵
-#                     weighted_cos_dist = cos_dist * combined_weights
-#                     # 关注最困难的负样本
-#                     hard_neg_dist, _ = weighted_cos_dist.min(dim=1)
-#                 else:
-#                     hard_neg_dist, _ = cos_dist.min(dim=1)
-#                 loss_neg = F.relu(self.margin - hard_neg_dist).mean()
-                
-#                 total_loss += self.beta * loss_neg
-#                 loss_dict["loss_neg"] = loss_neg.item()
-        
-#         # ======================
-#         # 3. 类内紧凑性损失
-#         # ======================
-#         if labels is not None and B > 1:
-#             # 创建同类样本掩码
-#             same_class = labels.unsqueeze(0) == labels.unsqueeze(1)
-#             same_class.fill_diagonal_(False)  # 排除自身
-            
-#             if same_class.sum() > 0:
-#                 # 计算同类样本间的相似度
-#                 intra_sim = torch.mm(f_norm, f_norm.t())
-#                 intra_loss = (1 - intra_sim[same_class]).mean()
-                
-#                 total_loss += self.gamma * intra_loss
-#                 loss_dict["loss_intra"] = intra_loss.item()
-        
-#         return total_loss, loss_dict
-
-# class DomainContrastiveLoss(nn.Module):
-#     def __init__(self, margin=0.5, alpha=1.0, beta=0.5, gamma=0.3, temperature=0.07, 
-#                  adaptive_temp=True, smooth_loss=True, curriculum_learning=True):
-#         """
-#         改进的域对比损失 - 解决收敛问题
-#         Args:
-#             margin: 负约束的最小余弦距离
-#             alpha: 正对齐损失权重
-#             beta: 负分离损失权重
-#             gamma: 类内紧凑性损失权重
-#             temperature: 相似度分布锐化系数
-#             adaptive_temp: 是否使用自适应温度
-#             smooth_loss: 是否使用平滑损失
-#             curriculum_learning: 是否使用课程学习
-#         """
-#         super().__init__()
-#         self.margin = margin
-#         self.alpha = alpha
-#         self.beta = beta
-#         self.gamma = gamma
-#         self.temperature = temperature
-#         self.adaptive_temp = adaptive_temp
-#         self.smooth_loss = smooth_loss
-#         self.curriculum_learning = curriculum_learning
-        
-#         # 自适应参数
-#         self.register_buffer('step_count', torch.tensor(0))
-#         self.register_buffer('temp_min', torch.tensor(0.01))
-#         self.register_buffer('temp_max', torch.tensor(0.5))
-
-#     def get_adaptive_temperature(self, similarities):
-#         """自适应温度调整"""
-#         if not self.adaptive_temp:
-#             return self.temperature
-        
-#         # 根据相似度分布调整温度
-#         sim_std = similarities.std()
-#         # 相似度分布越集中，温度越高（软化分布）
-#         adaptive_temp = torch.clamp(
-#             self.temperature * (1 + sim_std), 
-#             self.temp_min.to(sim_std.device), 
-#             self.temp_max.to(sim_std.device)
-#         )
-#         return adaptive_temp
-
-#     def curriculum_weight(self, step):
-#         """课程学习权重调整"""
-#         if not self.curriculum_learning:
-#             return 1.0
-        
-#         # 训练初期降低负分离损失的权重
-#         warmup_steps = 1000
-#         if step < warmup_steps:
-#             return 0.1 + 0.9 * (step / warmup_steps)
-#         return 1.0
-
-#     def infonce_loss(self, query, pos_key, neg_keys, temperature):
-#         """InfoNCE损失 - 类似CLIP"""
-#         # 计算正样本相似度
-#         pos_sim = torch.sum(query * pos_key, dim=-1, keepdim=True) / temperature
-        
-#         # 计算负样本相似度
-#         neg_sim = torch.mm(query, neg_keys.t()) / temperature
-        
-#         # 组合正负样本
-#         logits = torch.cat([pos_sim, neg_sim], dim=1)
-        
-#         # 标签：正样本在第0位
-#         labels = torch.zeros(query.size(0), dtype=torch.long, device=query.device)
-        
-#         return F.cross_entropy(logits, labels)
-
-#     def smooth_triplet_loss(self, anchor, positive, negatives, margin, temperature):
-#         """平滑三元组损失"""
-#         # 计算距离
-#         pos_dist = 1 - F.cosine_similarity(anchor, positive, dim=1)
-        
-#         # 对所有负样本计算距离并进行软最小值
-#         neg_dists = []
-#         for neg in negatives:
-#             neg_dist = 1 - F.cosine_similarity(anchor, neg, dim=1)
-#             neg_dists.append(neg_dist)
-        
-#         if neg_dists:
-#             neg_dist_stack = torch.stack(neg_dists, dim=1)
-#             # 使用log-sum-exp技巧计算软最小值
-#             weights = F.softmax(-neg_dist_stack / temperature, dim=1)
-#             soft_min_neg_dist = torch.sum(weights * neg_dist_stack, dim=1)
-#         else:
-#             soft_min_neg_dist = torch.zeros_like(pos_dist)
-        
-#         # 平滑三元组损失
-#         loss = F.relu(pos_dist - soft_min_neg_dist + margin)
-#         return loss.mean()
-
-#     def forward(self, features, labels=None, cur_proto=None, prev_proto=None, 
-#                 prev_proto_labels=None, class_weights=None):
-#         B, D = features.size()
-#         f_norm = F.normalize(features, p=2, dim=1)
-        
-#         # 更新步数
-#         self.step_count += 1
-        
-#         loss_dict = {"loss_pos": 0.0, "loss_neg": 0.0, "loss_intra": 0.0}
-#         total_loss = torch.tensor(0.0, device=features.device)
-
-#         # ======================
-#         # 1. 正对齐损失 (改进版)
-#         # ======================
-#         if cur_proto is not None and labels is not None:
-#             proto_norms = torch.norm(cur_proto, p=2, dim=1)
-#             valid_mask = (proto_norms > 1e-3) & (proto_norms < 100)
-            
-#             cur_proto_norm = F.normalize(cur_proto, p=2, dim=1)
-#             pos_proto = cur_proto_norm[labels]
-            
-#             # 使用cosine embedding loss而不是简单的1-cosine
-#             pos_sim = F.cosine_similarity(f_norm, pos_proto, dim=1)
-#             target = torch.ones_like(pos_sim)  # 目标相似度为1
-            
-#             valid_samples = valid_mask[labels]
-#             if valid_samples.sum() > 0:
-#                 # 使用cosine embedding loss
-#                 pos_loss = F.cosine_embedding_loss(
-#                     f_norm[valid_samples], 
-#                     pos_proto[valid_samples], 
-#                     target[valid_samples],
-#                     reduction='mean'
-#                 )
-                
-#                 if class_weights is not None:
-#                     sample_weights = class_weights[labels][valid_samples].mean()
-#                     pos_loss = pos_loss * sample_weights
-                
-#                 total_loss += self.alpha * pos_loss
-#                 loss_dict["loss_pos"] = pos_loss.item()
-
-#         # ======================
-#         # 2. 负分离损失 (InfoNCE + 平滑版本)
-#         # ======================
-#         curr_beta = self.beta * self.curriculum_weight(self.step_count)
-        
-#         if curr_beta > 0:
-#             # 方案1: InfoNCE风格的对比损失
-#             if cur_proto is not None and labels is not None and self.smooth_loss:
-#                 proto_norms = torch.norm(cur_proto, p=2, dim=1)
-#                 valid_mask = (proto_norms > 1e-3) & (proto_norms < 100)
-                
-#                 if valid_mask.sum() > 1:  # 至少需要2个有效原型
-#                     cur_proto_norm = F.normalize(cur_proto, p=2, dim=1)
-                    
-#                     # 为每个样本构建正负样本对
-#                     infonce_losses = []
-#                     for i, sample_label in enumerate(labels):
-#                         if valid_mask[sample_label]:
-#                             # 正样本：当前类别原型
-#                             pos_proto = cur_proto_norm[sample_label:sample_label+1]
-                            
-#                             # 负样本：其他有效类别原型
-#                             neg_mask = valid_mask.clone()
-#                             neg_mask[sample_label] = False
-                            
-#                             if neg_mask.sum() > 0:
-#                                 neg_protos = cur_proto_norm[neg_mask]
-                                
-#                                 # 自适应温度
-#                                 all_sims = torch.cat([
-#                                     F.cosine_similarity(f_norm[i:i+1], pos_proto, dim=1),
-#                                     F.cosine_similarity(f_norm[i:i+1], neg_protos, dim=1)
-#                                 ])
-#                                 temp = self.get_adaptive_temperature(all_sims)
-                                
-#                                 # InfoNCE损失
-#                                 infonce_loss = self.infonce_loss(
-#                                     f_norm[i:i+1], pos_proto, neg_protos, temp
-#                                 )
-#                                 infonce_losses.append(infonce_loss)
-                    
-#                     if infonce_losses:
-#                         loss_neg = torch.stack(infonce_losses).mean()
-#                         total_loss += curr_beta * loss_neg
-#                         loss_dict["loss_neg"] = loss_neg.item()
-            
-#             # 方案2: 平滑三元组损失（传统方式的改进）
-#             elif not self.smooth_loss and cur_proto is not None and labels is not None:
-#                 proto_norms = torch.norm(cur_proto, p=2, dim=1)
-#                 valid_mask = (proto_norms > 1e-3) & (proto_norms < 100)
-                
-#                 if valid_mask.sum() > 1:
-#                     cur_proto_norm = F.normalize(cur_proto, p=2, dim=1)
-                    
-#                     triplet_losses = []
-#                     for i, sample_label in enumerate(labels):
-#                         if valid_mask[sample_label]:
-#                             # anchor: 当前样本
-#                             anchor = f_norm[i:i+1]
-#                             # positive: 当前类别原型
-#                             positive = cur_proto_norm[sample_label:sample_label+1]
-                            
-#                             # negatives: 其他类别原型
-#                             neg_mask = valid_mask.clone()
-#                             neg_mask[sample_label] = False
-                            
-#                             if neg_mask.sum() > 0:
-#                                 negatives = cur_proto_norm[neg_mask]
-                                
-#                                 # 自适应温度
-#                                 all_sims = torch.cat([
-#                                     F.cosine_similarity(anchor, positive, dim=1),
-#                                     F.cosine_similarity(anchor, negatives, dim=1)
-#                                 ])
-#                                 temp = self.get_adaptive_temperature(all_sims)
-                                
-#                                 # 平滑三元组损失
-#                                 triplet_loss = self.smooth_triplet_loss(
-#                                     anchor, positive, [negatives[j:j+1] for j in range(negatives.size(0))],
-#                                     self.margin, temp
-#                                 )
-#                                 triplet_losses.append(triplet_loss)
-                    
-#                     if triplet_losses:
-#                         loss_neg = torch.stack(triplet_losses).mean()
-#                         total_loss += curr_beta * loss_neg
-#                         loss_dict["loss_neg"] = loss_neg.item()
-
-#         # ======================
-#         # 3. 类内紧凑性损失 (保持原有实现)
-#         # ======================
-#         if labels is not None and B > 1:
-#             same_class = labels.unsqueeze(0) == labels.unsqueeze(1)
-#             same_class.fill_diagonal_(False)
-            
-#             if same_class.sum() > 0:
-#                 intra_sim = torch.mm(f_norm, f_norm.t())
-#                 intra_loss = (1 - intra_sim[same_class]).mean()
-                
-#                 total_loss += self.gamma * intra_loss
-#                 loss_dict["loss_intra"] = intra_loss.item()
-
-#         return total_loss, loss_dict
-
-# class DomainContrastiveLoss(nn.Module):
-#     def __init__(self, margin=0.5, alpha=1.0, beta=0.5, gamma=0.3, temperature=0.07, 
-#                  adaptive_temp=True, smooth_loss=True, curriculum_learning=True):
-#         """
-#         改进的域对比损失 - 解决收敛问题
-#         Args:
-#             margin: 负约束的最小余弦距离
-#             alpha: 正对齐损失权重
-#             beta: 负分离损失权重
-#             gamma: 类内紧凑性损失权重
-#             temperature: 相似度分布锐化系数
-#             adaptive_temp: 是否使用自适应温度
-#             smooth_loss: 是否使用平滑损失
-#             curriculum_learning: 是否使用课程学习
-#         """
-#         super().__init__()
-#         self.margin = margin
-#         self.alpha = alpha
-#         self.beta = beta
-#         self.gamma = gamma
-#         self.temperature = temperature
-#         self.adaptive_temp = adaptive_temp
-#         self.smooth_loss = smooth_loss
-#         self.curriculum_learning = curriculum_learning
-        
-#         # 自适应参数
-#         self.register_buffer('step_count', torch.tensor(0))
-#         self.register_buffer('temp_min', torch.tensor(0.01))
-#         self.register_buffer('temp_max', torch.tensor(0.5))
-
-#     def get_adaptive_temperature(self, similarities):
-#         """自适应温度调整"""
-#         if not self.adaptive_temp:
-#             return self.temperature
-        
-#         # 根据相似度分布调整温度
-#         sim_std = similarities.std()
-#         # 相似度分布越集中，温度越高（软化分布）
-#         adaptive_temp = torch.clamp(
-#             self.temperature * (1 + sim_std), 
-#             self.temp_min.to(sim_std.device), 
-#             self.temp_max.to(sim_std.device)
-#         )
-#         return adaptive_temp
-
-#     def curriculum_weight(self, step):
-#         """课程学习权重调整"""
-#         if not self.curriculum_learning:
-#             return 1.0
-        
-#         # 训练初期降低负分离损失的权重
-#         warmup_steps = 1000
-#         if step < warmup_steps:
-#             return 0.1 + 0.9 * (step / warmup_steps)
-#         return 1.0
-
-#     def infonce_loss(self, query, pos_key, neg_keys, temperature):
-#         """InfoNCE损失 - 类似CLIP"""
-#         # 计算正样本相似度
-#         pos_sim = torch.sum(query * pos_key, dim=-1, keepdim=True) / temperature
-        
-#         # 计算负样本相似度
-#         neg_sim = torch.mm(query, neg_keys.t()) / temperature
-        
-#         # 组合正负样本
-#         logits = torch.cat([pos_sim, neg_sim], dim=1)
-        
-#         # 标签：正样本在第0位
-#         labels = torch.zeros(query.size(0), dtype=torch.long, device=query.device)
-        
-#         return F.cross_entropy(logits, labels)
-
-#     def smooth_triplet_loss(self, anchor, positive, negatives, margin, temperature):
-#         """平滑三元组损失"""
-#         # 计算距离
-#         pos_dist = 1 - F.cosine_similarity(anchor, positive, dim=1)
-        
-#         # 对所有负样本计算距离并进行软最小值
-#         neg_dists = []
-#         for neg in negatives:
-#             neg_dist = 1 - F.cosine_similarity(anchor, neg, dim=1)
-#             neg_dists.append(neg_dist)
-        
-#         if neg_dists:
-#             neg_dist_stack = torch.stack(neg_dists, dim=1)
-#             # 使用log-sum-exp技巧计算软最小值
-#             weights = F.softmax(-neg_dist_stack / temperature, dim=1)
-#             soft_min_neg_dist = torch.sum(weights * neg_dist_stack, dim=1)
-#         else:
-#             soft_min_neg_dist = torch.zeros_like(pos_dist)
-        
-#         # 平滑三元组损失
-#         loss = F.relu(pos_dist - soft_min_neg_dist + margin)
-#         return loss.mean()
-
-#     def forward(self, features, labels=None, cur_proto=None, prev_proto=None, 
-#                 prev_proto_labels=None, class_weights=None):
-#         B, D = features.size()
-#         f_norm = F.normalize(features, p=2, dim=1)
-        
-#         # 更新步数
-#         self.step_count += 1
-        
-#         loss_dict = {"loss_pos": 0.0, "loss_neg": 0.0, "loss_intra": 0.0}
-#         total_loss = torch.tensor(0.0, device=features.device)
-
-#         # ======================
-#         # 1. 正对齐损失 (改进版)
-#         # ======================
-#         if cur_proto is not None and labels is not None:
-#             proto_norms = torch.norm(cur_proto, p=2, dim=1)
-#             valid_mask = (proto_norms > 1e-3) & (proto_norms < 100)
-            
-#             cur_proto_norm = F.normalize(cur_proto, p=2, dim=1)
-#             pos_proto = cur_proto_norm[labels]
-            
-#             # 使用cosine embedding loss而不是简单的1-cosine
-#             pos_sim = F.cosine_similarity(f_norm, pos_proto, dim=1)
-#             target = torch.ones_like(pos_sim)  # 目标相似度为1
-            
-#             valid_samples = valid_mask[labels]
-#             if valid_samples.sum() > 0:
-#                 # 使用cosine embedding loss
-#                 pos_loss = F.cosine_embedding_loss(
-#                     f_norm[valid_samples], 
-#                     pos_proto[valid_samples], 
-#                     target[valid_samples],
-#                     reduction='mean'
-#                 )
-                
-#                 if class_weights is not None:
-#                     sample_weights = class_weights[labels][valid_samples].mean()
-#                     pos_loss = pos_loss * sample_weights
-                
-#                 total_loss += self.alpha * pos_loss
-#                 loss_dict["loss_pos"] = pos_loss.item()
-
-#         # ======================
-#         # 2. 负分离损失 (InfoNCE + 平滑版本 + 跨域分离)
-#         # ======================
-#         curr_beta = self.beta * self.curriculum_weight(self.step_count)
-        
-#         if curr_beta > 0:
-#             loss_neg_total = torch.tensor(0.0, device=features.device)
-#             neg_loss_count = 0
-            
-#             # 2.1 当前域内的负分离损失
-#             if cur_proto is not None and labels is not None:
-#                 proto_norms = torch.norm(cur_proto, p=2, dim=1)
-#                 valid_mask = (proto_norms > 1e-3) & (proto_norms < 100)
-                
-#                 if valid_mask.sum() > 1:  # 至少需要2个有效原型
-#                     cur_proto_norm = F.normalize(cur_proto, p=2, dim=1)
-                    
-#                     if self.smooth_loss:
-#                         # InfoNCE风格的域内对比损失
-#                         infonce_losses = []
-#                         for i, sample_label in enumerate(labels):
-#                             if valid_mask[sample_label]:
-#                                 # 正样本：当前类别原型
-#                                 pos_proto = cur_proto_norm[sample_label:sample_label+1]
-                                
-#                                 # 负样本：其他有效类别原型
-#                                 neg_mask = valid_mask.clone()
-#                                 neg_mask[sample_label] = False
-                                
-#                                 if neg_mask.sum() > 0:
-#                                     neg_protos = cur_proto_norm[neg_mask]
-                                    
-#                                     # 自适应温度
-#                                     all_sims = torch.cat([
-#                                         F.cosine_similarity(f_norm[i:i+1], pos_proto, dim=1),
-#                                         F.cosine_similarity(f_norm[i:i+1], neg_protos, dim=1)
-#                                     ])
-#                                     temp = self.get_adaptive_temperature(all_sims)
-                                    
-#                                     # InfoNCE损失
-#                                     infonce_loss = self.infonce_loss(
-#                                         f_norm[i:i+1], pos_proto, neg_protos, temp
-#                                     )
-#                                     infonce_losses.append(infonce_loss)
-                        
-#                         if infonce_losses:
-#                             loss_neg_intra = torch.stack(infonce_losses).mean()
-#                             loss_neg_total += loss_neg_intra
-#                             neg_loss_count += 1
-                    
-#                     else:
-#                         # 平滑三元组损失（域内）
-#                         triplet_losses = []
-#                         for i, sample_label in enumerate(labels):
-#                             if valid_mask[sample_label]:
-#                                 anchor = f_norm[i:i+1]
-#                                 positive = cur_proto_norm[sample_label:sample_label+1]
-                                
-#                                 neg_mask = valid_mask.clone()
-#                                 neg_mask[sample_label] = False
-                                
-#                                 if neg_mask.sum() > 0:
-#                                     negatives = cur_proto_norm[neg_mask]
-                                    
-#                                     all_sims = torch.cat([
-#                                         F.cosine_similarity(anchor, positive, dim=1),
-#                                         F.cosine_similarity(anchor, negatives, dim=1)
-#                                     ])
-#                                     temp = self.get_adaptive_temperature(all_sims)
-                                    
-#                                     triplet_loss = self.smooth_triplet_loss(
-#                                         anchor, positive, [negatives[j:j+1] for j in range(negatives.size(0))],
-#                                         self.margin, temp
-#                                     )
-#                                     triplet_losses.append(triplet_loss)
-                        
-#                         if triplet_losses:
-#                             loss_neg_intra = torch.stack(triplet_losses).mean()
-#                             loss_neg_total += loss_neg_intra
-#                             neg_loss_count += 1
-            
-#             # 2.2 跨域的负分离损失（历史原型）
-#             if prev_proto is not None and prev_proto.size(0) > 0 and labels is not None:
-#                 prev_norms = torch.norm(prev_proto, p=2, dim=1)
-#                 prev_valid_mask = prev_norms > 1e-3
-                
-#                 if prev_valid_mask.sum() > 0:
-#                     prev_proto_norm = F.normalize(prev_proto, p=2, dim=1)[prev_valid_mask]
-                    
-#                     if prev_proto_labels is not None:
-#                         # 已知历史原型标签 - 类别感知的跨域分离
-#                         valid_prev_labels = prev_proto_labels[prev_valid_mask]
-#                         cross_domain_losses = []
-                        
-#                         for i, sample_label in enumerate(labels):
-#                             # 找到历史原型中与当前样本不同类别的原型
-#                             diff_class_mask = valid_prev_labels != sample_label
-#                             diff_class_protos = prev_proto_norm[diff_class_mask]
-                            
-#                             if diff_class_protos.size(0) > 0:
-#                                 if self.smooth_loss:
-#                                     # 使用InfoNCE风格，但权重较小
-#                                     # 构造虚拟正样本（当前样本自身）
-#                                     query = f_norm[i:i+1]
-                                    
-#                                     # 计算与不同类历史原型的相似度
-#                                     cross_sim = torch.mm(query, diff_class_protos.t())
-#                                     temp = self.get_adaptive_temperature(cross_sim.flatten()) * 2  # 更高温度
-                                    
-#                                     # 简化的对比损失：推动远离所有不同类历史原型
-#                                     cross_logits = cross_sim / temp
-#                                     # 目标是让所有相似度都很小
-#                                     cross_loss = F.logsumexp(cross_logits, dim=1).mean()
-#                                     cross_domain_losses.append(cross_loss)
-#                                 else:
-#                                     # 使用margin loss，权重较小
-#                                     cross_sim = F.cosine_similarity(f_norm[i:i+1], diff_class_protos, dim=1)
-#                                     cross_dist = 1.0 - cross_sim
-#                                     hard_cross_dist = cross_dist.min()
-#                                     cross_loss = F.relu(self.margin - hard_cross_dist)
-#                                     cross_domain_losses.append(cross_loss)
-                        
-#                         if cross_domain_losses:
-#                             loss_neg_cross = torch.stack(cross_domain_losses).mean()
-#                             # 跨域分离使用较小权重（0.3）
-#                             loss_neg_total += 0.3 * loss_neg_cross
-#                             neg_loss_count += 1
-                    
-#                     else:
-#                         # 未知历史原型标签 - 保守的轻微分离
-#                         if self.smooth_loss:
-#                             # 对所有历史原型进行轻微的InfoNCE风格分离
-#                             cross_sim_matrix = torch.mm(f_norm, prev_proto_norm.t())
-#                             temp = self.get_adaptive_temperature(cross_sim_matrix.flatten()) * 3  # 更高温度，更保守
-                            
-#                             cross_logits = cross_sim_matrix / temp
-#                             # 非常轻微的推斥力
-#                             cross_loss = torch.logsumexp(cross_logits, dim=1).mean()
-#                             # 使用很小的权重（0.1）避免错误分离同类
-#                             loss_neg_total += 0.1 * cross_loss
-#                             neg_loss_count += 1
-#                         else:
-#                             # 传统margin方式，非常保守
-#                             cross_sim_matrix = torch.mm(f_norm, prev_proto_norm.t())
-#                             cross_cos_dist = 1.0 - cross_sim_matrix
-#                             hard_cross_dist, _ = cross_cos_dist.min(dim=1)
-#                             cross_loss = F.relu(self.margin - hard_cross_dist).mean()
-#                             # 使用很小的权重（0.1）
-#                             loss_neg_total += 0.1 * cross_loss
-#                             neg_loss_count += 1
-            
-#             # 计算最终的负分离损失
-#             if neg_loss_count > 0:
-#                 loss_neg = loss_neg_total / neg_loss_count
-                
-#                 # 应用类别权重
-#                 if class_weights is not None:
-#                     sample_weights = class_weights[labels].mean()
-#                     loss_neg = loss_neg * sample_weights
-                
-#                 total_loss += curr_beta * loss_neg
-#                 loss_dict["loss_neg"] = loss_neg.item()
-
-#         # ======================
-#         # 3. 类内紧凑性损失 (保持原有实现)
-#         # ======================
-#         if labels is not None and B > 1:
-#             same_class = labels.unsqueeze(0) == labels.unsqueeze(1)
-#             same_class.fill_diagonal_(False)
-            
-#             if same_class.sum() > 0:
-#                 intra_sim = torch.mm(f_norm, f_norm.t())
-#                 intra_loss = (1 - intra_sim[same_class]).mean()
-                
-#                 total_loss += self.gamma * intra_loss
-#                 loss_dict["loss_intra"] = intra_loss.item()
-
-#         return total_loss, loss_dict
-
 class DomainContrastiveLoss(nn.Module):
     """
     精简且修正后的域对比损失实现（可直接替换原实现）
@@ -808,7 +28,7 @@ class DomainContrastiveLoss(nn.Module):
 
     def __init__(self, margin=0.5, alpha=1.0, beta=0.5, gamma=0.3,
                  temperature=0.07, adaptive_temp=True, smooth_loss=True,
-                 curriculum_learning=True, cross_domain_weight=0.1):
+                 curriculum_learning=True, cross_domain_weight=0.0):
         super().__init__()
         self.margin = float(margin)
         self.alpha = float(alpha)
@@ -898,7 +118,7 @@ class DomainContrastiveLoss(nn.Module):
         #    使用 cur_proto（类别感知）作为候选正/负原型
         # ------------------
         curr_beta = self.beta * self.curriculum_weight(self.step_count)
-        loss_neg_terms = []
+        loss_neg_terms = torch.tensor(0.0, device=device)
 
         if curr_beta > 0 and cur_proto is not None and labels is not None:
             # 准备 proto 与 mask
@@ -913,6 +133,7 @@ class DomainContrastiveLoss(nn.Module):
                 logits = torch.matmul(f_norm, proto_norm.t())  # cosine similarities (B, C)
                 # adaptive temperature based on logits distribution
                 temp = float(self.get_adaptive_temperature(logits))
+                # temp = self.get_adaptive_temperature(logits)
                 logits = logits / temp
 
                 # mask invalid prototypes
@@ -933,71 +154,70 @@ class DomainContrastiveLoss(nn.Module):
                     sample_w = torch.ones(B, device=device)
 
                 loss_neg_intra = (ce_loss_per_sample * sample_w).sum() / (sample_w.sum() + 1e-12)
-                loss_neg_terms.append(loss_neg_intra)
+                loss_neg_terms += loss_neg_intra
 
-        # ------------------
+        # # ------------------
         # 2b) 跨域负分离（使用 prev_proto），已知标签时阻止同类原型作为负样本
         # ------------------
-        # if curr_beta > 0 and prev_proto is not None and prev_proto.size(0) > 0:
-        #     prev_norms = torch.norm(prev_proto, p=2, dim=1)
-        #     prev_valid_mask = (prev_norms > 1e-6) & (prev_norms < 1e6)
+        if curr_beta > 0 and prev_proto is not None and prev_proto.size(0) > 0:
+            prev_norms = torch.norm(prev_proto, p=2, dim=1)
+            prev_valid_mask = (prev_norms > 1e-6) & (prev_norms < 1e6)
 
-        #     if prev_valid_mask.sum() > 0:
-        #         prev_proto_norm = F.normalize(prev_proto, p=2, dim=1)
-        #         prev_proto_norm = prev_proto_norm[prev_valid_mask]
+            if prev_valid_mask.sum() > 0:
+                prev_proto_norm = F.normalize(prev_proto, p=2, dim=1)
+                prev_proto_norm = prev_proto_norm[prev_valid_mask]
 
-        #         if prev_proto_labels is not None:
-        #             prev_labels_valid = prev_proto_labels[prev_valid_mask]
-        #             # logits (B, P_valid)
-        #             logits_prev = torch.matmul(f_norm, prev_proto_norm.t())
-        #             temp_prev = float(self.get_adaptive_temperature(logits_prev)) * 2.0
-        #             logits_prev = logits_prev / temp_prev
+                if prev_proto_labels is not None:
+                    prev_labels_valid = prev_proto_labels[prev_valid_mask]
+                    # logits (B, P_valid)
+                    logits_prev = torch.matmul(f_norm, prev_proto_norm.t())
+                    temp_prev = float(self.get_adaptive_temperature(logits_prev)) * 2.0
+                    logits_prev = logits_prev / temp_prev
 
-        #             # 对于与当前样本同类的历史原型，我们将其 mask 掉（防止被当作负样本）
-        #             # 构建 mask (B, P_valid)
-        #             # prev_labels_valid: (P_valid,)
-        #             mask_same = (labels.unsqueeze(1).to(device) == prev_labels_valid.unsqueeze(0).to(device))
-        #             logits_prev = logits_prev.masked_fill(mask_same, -1e9)
+                    # 对于与当前样本同类的历史原型，我们将其 mask 掉（防止被当作负样本）
+                    # 构建 mask (B, P_valid)
+                    # prev_labels_valid: (P_valid,)
+                    mask_same = (labels.unsqueeze(1).to(device) == prev_labels_valid.unsqueeze(0).to(device))
+                    logits_prev = logits_prev.masked_fill(mask_same, -1e9)
 
-        #             # 推远历史不同类原型的简单但稳定的做法：对每个样本计算 logsumexp 并平均
-        #             # 这会鼓励这些相似度整体较低
-        #             # 使用较小权重避免误伤
-        #             lse_per_sample = torch.logsumexp(logits_prev, dim=1)  # (B,)
+                    # 推远历史不同类原型的简单但稳定的做法：对每个样本计算 logsumexp 并平均
+                    # 这会鼓励这些相似度整体较低
+                    # 使用较小权重避免误伤
+                    lse_per_sample = torch.logsumexp(logits_prev, dim=1)  # (B,)
 
-        #             if class_weights is not None:
-        #                 sample_w = class_weights[labels].to(device)
-        #             else:
-        #                 sample_w = torch.ones(B, device=device)
+                    if class_weights is not None:
+                        sample_w = class_weights[labels].to(device)
+                    else:
+                        sample_w = torch.ones(B, device=device)
 
-        #             loss_cross = (lse_per_sample * sample_w).sum() / (sample_w.sum() + 1e-12)
-        #             loss_neg_terms.append(self.cross_domain_weight * loss_cross)
+                    loss_cross = (lse_per_sample * sample_w).sum() / (sample_w.sum() + 1e-12)
+                    loss_neg_terms += self.cross_domain_weight * loss_cross
+                else:
+                    # 未知历史标签 - 更保守的做法：对所有历史原型使用 logsumexp 且权重更小
+                    logits_prev = torch.matmul(f_norm, prev_proto_norm.t())
+                    temp_prev = float(self.get_adaptive_temperature(logits_prev)) * 3.0
+                    logits_prev = logits_prev / temp_prev
+                    lse_per_sample = torch.logsumexp(logits_prev, dim=1)
 
-        #         else:
-        #             # 未知历史标签 - 更保守的做法：对所有历史原型使用 logsumexp 且权重更小
-        #             logits_prev = torch.matmul(f_norm, prev_proto_norm.t())
-        #             temp_prev = float(self.get_adaptive_temperature(logits_prev)) * 3.0
-        #             logits_prev = logits_prev / temp_prev
-        #             lse_per_sample = torch.logsumexp(logits_prev, dim=1)
+                    if class_weights is not None:
+                        sample_w = class_weights[labels].to(device)
+                    else:
+                        sample_w = torch.ones(B, device=device)
 
-        #             if class_weights is not None:
-        #                 sample_w = class_weights[labels].to(device)
-        #             else:
-        #                 sample_w = torch.ones(B, device=device)
-
-        #             loss_cross = (lse_per_sample * sample_w).sum() / (sample_w.sum() + 1e-12)
-        #             # 更小权重
-        #             loss_neg_terms.append(0.1 * loss_cross)
-
+                    loss_cross = (lse_per_sample * sample_w).sum() / (sample_w.sum() + 1e-12)
+                    # 更小权重
+                    loss_neg_terms += self.cross_domain_weight * loss_cross
+                    
         # combine negative terms
-        if len(loss_neg_terms) > 0:
-            loss_neg = torch.stack(loss_neg_terms).mean()
-            total_loss = total_loss + curr_beta * loss_neg
-            loss_dict["loss_neg"] = float(loss_neg.detach())
+        # if len(loss_neg_terms) > 0:
+        #     loss_neg = torch.stack(loss_neg_terms).mean()
+        total_loss = total_loss + curr_beta * loss_neg_terms
+        loss_dict["loss_neg"] = float(loss_neg_terms.detach())
 
         # ------------------
         # 3) 类内紧凑性（保持原实现）
         # ------------------
-        if labels is not None and B > 1:
+        if cur_proto is not None and B > 1: # and labels is not None
             same_class = labels.unsqueeze(0) == labels.unsqueeze(1)
             same_class.fill_diagonal_(False)
             if same_class.sum() > 0:
@@ -1008,6 +228,270 @@ class DomainContrastiveLoss(nn.Module):
 
         return total_loss, loss_dict
 
+# class DomainContrastiveLoss(nn.Module):
+#     """
+#     改进版域对比损失 (DomainContrastiveLossV2)
+#     -------------------------------------------------
+#     ✅ 主要改进：
+#     1. 去除多余超参，仅保留 α, β, γ, temperature。
+#     2. 使用真正的 InfoNCE 而非 cross_entropy 实现（梯度更自然）。
+#     3. 自动调整各分支权重（根据 batch 内方差归一化）。
+#     4. 修复 adaptive temperature 的梯度截断问题。
+#     5. 使用上三角 mask 避免类内重复计算。
+#     6. 课程权重与跨域权重动态融合，几乎免调参。
+
+#     接口保持一致，可直接替换原 DomainContrastiveLoss。
+#     """
+
+#     def __init__(self, alpha=1.0, beta=0.7, gamma=0.3, temperature=0.07, **kwargs):
+#         super().__init__()
+#         self.alpha = alpha
+#         self.beta = beta
+#         self.gamma = gamma
+#         self.temperature = temperature
+#         self.step_count = 0
+
+#     def forward(self, features, labels=None, cur_proto=None, prev_proto=None,
+#                 prev_proto_labels=None, class_weights=None):
+#         """
+#         features: (B, D)
+#         labels: (B,)
+#         cur_proto: (C, D)
+#         prev_proto: (P, D)
+#         prev_proto_labels: (P,)
+#         """
+#         B, D = features.shape
+#         device = features.device
+#         f_norm = F.normalize(features, dim=1)
+#         total_loss = torch.tensor(0.0, device=device)
+#         loss_dict = {"loss_pos": 0.0, "loss_neg": 0.0, "loss_intra": 0.0}
+
+#         self.step_count += 1
+
+#         # ============ 1) 正对齐 (1 - cosine) ============
+#         if cur_proto is not None and labels is not None:
+#             cur_proto_norm = F.normalize(cur_proto, dim=1)
+#             pos_proto = cur_proto_norm[labels]
+#             pos_cos = (f_norm * pos_proto).sum(dim=1)
+#             pos_loss = (1.0 - pos_cos).clamp(min=0.0)
+#             if class_weights is not None:
+#                 sample_w = class_weights[labels].to(device)
+#                 pos_loss = (pos_loss * sample_w).sum() / (sample_w.sum() + 1e-12)
+#             else:
+#                 pos_loss = pos_loss.mean()
+#             loss_dict["loss_pos"] = float(pos_loss.detach())
+#         else:
+#             pos_loss = torch.tensor(0.0, device=device)
+
+#         # ============ 2) 域内 InfoNCE 负分离 ============
+#         if cur_proto is not None and labels is not None:
+#             proto_norm = F.normalize(cur_proto, dim=1)
+#             logits = torch.matmul(f_norm, proto_norm.t()) / self.temperature
+#             # InfoNCE formulation
+#             exp_logits = torch.exp(logits)
+#             pos_logits = exp_logits[torch.arange(B), labels]
+#             denom = exp_logits.sum(dim=1) + 1e-12
+#             info_nce = -torch.log(pos_logits / denom)
+#             if class_weights is not None:
+#                 w = class_weights[labels].to(device)
+#                 loss_neg = (info_nce * w).sum() / (w.sum() + 1e-12)
+#             else:
+#                 loss_neg = info_nce.mean()
+#             loss_dict["loss_neg"] = float(loss_neg.detach())
+#         else:
+#             loss_neg = torch.tensor(0.0, device=device)
+
+#         # ============ 3) 跨域对比（轻量化） ============
+#         if prev_proto is not None and prev_proto.size(0) > 0:
+#             prev_proto_norm = F.normalize(prev_proto, dim=1)
+#             logits_prev = torch.matmul(f_norm, prev_proto_norm.t()) / (self.temperature * 2.0)
+#             if prev_proto_labels is not None:
+#                 same = labels.unsqueeze(1) == prev_proto_labels.unsqueeze(0)
+#                 logits_prev = logits_prev.masked_fill(same, -1e9)
+#             # 对整体跨域相似度施加logsumexp压制
+#             loss_cross = torch.logsumexp(logits_prev, dim=1).mean()
+#             # 课程式递增权重
+#             cross_weight = min(1.0, self.step_count / 1000.0)
+#             loss_neg = loss_neg + 0.1 * cross_weight * loss_cross
+
+#         # ============ 4) 类内紧凑性 ============
+#         if labels is not None and B > 1:
+#             same_class = (labels.unsqueeze(0) == labels.unsqueeze(1))
+#             same_class = torch.triu(same_class, diagonal=1)
+#             if same_class.sum() > 0:
+#                 intra_sim = torch.matmul(f_norm, f_norm.t())
+#                 intra_loss = (1.0 - intra_sim[same_class]).mean()
+#             else:
+#                 intra_loss = torch.tensor(0.0, device=device)
+#         else:
+#             intra_loss = torch.tensor(0.0, device=device)
+#         loss_dict["loss_intra"] = float(intra_loss.detach())
+
+#         # ============ 5) 动态权重归一化融合 ============
+#         # 防止某一项 dominate，自动标准化各项
+#         with torch.no_grad():
+#             vals = torch.stack([pos_loss, loss_neg, intra_loss])
+#             mean = vals.mean()
+#             std = vals.std() + 1e-6
+#             norm_weights = (vals - mean) / std
+#             norm_weights = torch.softmax(norm_weights, dim=0)
+#         total_loss = (
+#             norm_weights[0] * self.alpha * pos_loss +
+#             norm_weights[1] * self.beta * loss_neg +
+#             norm_weights[2] * self.gamma * intra_loss
+#         )
+
+#         return total_loss, loss_dict
+
+# class DomainContrastiveLoss(nn.Module):
+#     """
+#     改进版域对比损失 - 简化超参数设计，增强鲁棒性
+    
+#     主要改进：
+#     1. 大幅减少超参数数量（从9个减少到4个）
+#     2. 自动平衡正负损失权重
+#     3. 简化温度控制策略
+#     4. 增强数值稳定性
+#     5. 优化跨域负分离逻辑
+    
+#     使用说明（接口保持不变）：
+#     - cur_proto: Tensor[C, D]，第 i 行为类别 i 的当前原型
+#     - prev_proto: Tensor[P, D]，历史原型集合
+#     - prev_proto_labels: Tensor[P] 可选，表示 prev_proto 的类别索引
+#     - labels: Tensor[B]，每个样本对应的类别索引（0..C-1）
+#     """
+
+#     def __init__(self, temperature=0.07, intra_weight=0.3, cross_domain_weight=0.1, **kwargs):
+#         """
+#         简化超参数设计：
+#         - temperature: 对比损失温度参数（默认0.07）
+#         - intra_weight: 类内紧凑性权重（默认0.3）
+#         - cross_domain_weight: 跨域负分离权重（默认0.1）
+#         """
+#         super().__init__()
+#         self.temperature = temperature
+#         self.intra_weight = intra_weight
+#         self.cross_domain_weight = cross_domain_weight
+        
+#         # 自动平衡参数（内部使用）
+#         self.register_buffer('pos_weight', torch.tensor(1.0))
+#         self.register_buffer('neg_weight', torch.tensor(1.0))
+        
+#         # 温度范围限制
+#         self.temp_min = 0.01
+#         self.temp_max = 1.0
+
+#     def forward(self, features, labels=None, cur_proto=None, prev_proto=None,
+#                 prev_proto_labels=None, class_weights=None):
+#         """
+#         features: (B, D)
+#         labels: (B,)  or None
+#         cur_proto: (C, D) or None
+#         prev_proto: (P, D) or None
+#         prev_proto_labels: (P,) or None
+#         class_weights: Tensor[C] or None (per-class scalar weight)
+#         """
+#         device = features.device
+#         B, D = features.shape
+#         f_norm = F.normalize(features, p=2, dim=1)
+        
+#         total_loss = torch.tensor(0.0, device=device)
+#         loss_dict = {"loss_pos": 0.0, "loss_neg": 0.0, "loss_intra": 0.0}
+
+#         # ======================
+#         # 1. 核心对比损失（正对齐+负分离）
+#         # ======================
+#         if cur_proto is not None and labels is not None:
+#             # 原型归一化
+#             cur_proto_norm = F.normalize(cur_proto, p=2, dim=1)  # (C, D)
+            
+#             # 计算所有样本与原型的相似度
+#             logits = torch.matmul(f_norm, cur_proto_norm.t()) / self.temperature  # (B, C)
+            
+#             # 创建目标：每个样本对应其类别的one-hot
+#             targets = torch.zeros_like(logits)
+#             targets.scatter_(1, labels.unsqueeze(1), 1)
+            
+#             # 应用类别权重（如果提供）
+#             if class_weights is not None:
+#                 sample_weights = class_weights[labels].to(device)
+#                 weights = sample_weights.unsqueeze(1).expand_as(targets)
+#                 targets = targets * weights
+            
+#             # 计算交叉熵损失（同时优化正对齐和负分离）
+#             loss_ce = -torch.sum(F.log_softmax(logits, dim=1) * targets, dim=1).mean()
+            
+#             total_loss += loss_ce
+#             loss_dict["loss_pos"] = loss_ce.item()
+#             loss_dict["loss_neg"] = loss_ce.item()  # 同时包含正负损失
+
+#         # ======================
+#         # 2. 跨域负分离（使用历史原型）
+#         # ======================
+#         if (self.cross_domain_weight > 0 and 
+#             prev_proto is not None and 
+#             prev_proto.size(0) > 0 and
+#             labels is not None):
+            
+#             # 过滤无效原型
+#             prev_norms = torch.norm(prev_proto, p=2, dim=1)
+#             prev_valid_mask = (prev_norms > 1e-6) & (prev_norms < 1e6)
+            
+#             if prev_valid_mask.sum() > 0:
+#                 prev_proto_norm = F.normalize(prev_proto, p=2, dim=1)
+#                 prev_proto_norm = prev_proto_norm[prev_valid_mask]
+                
+#                 # 计算与历史原型的相似度
+#                 logits_prev = torch.matmul(f_norm, prev_proto_norm.t()) / self.temperature  # (B, P_valid)
+                
+#                 # 如果有历史原型标签，屏蔽同类原型
+#                 if prev_proto_labels is not None:
+#                     prev_labels_valid = prev_proto_labels[prev_valid_mask]
+#                     mask_same = (labels.unsqueeze(1) == prev_labels_valid.unsqueeze(0))
+#                     logits_prev = logits_prev.masked_fill(mask_same, -1e9)
+                
+#                 # 计算推远损失（logsumexp）
+#                 # 添加稳定性处理
+#                 logits_prev_max, _ = torch.max(logits_prev, dim=1, keepdim=True)
+#                 logits_prev_stable = logits_prev - logits_prev_max.detach()
+#                 lse_per_sample = torch.logsumexp(logits_prev_stable, dim=1) + logits_prev_max.squeeze()
+                
+#                 # 应用类别权重
+#                 if class_weights is not None:
+#                     sample_w = class_weights[labels].to(device)
+#                     loss_cross = (lse_per_sample * sample_w).sum() / (sample_w.sum() + 1e-12)
+#                 else:
+#                     loss_cross = lse_per_sample.mean()
+                
+#                 total_loss += self.cross_domain_weight * loss_cross
+#                 loss_dict["loss_neg"] += self.cross_domain_weight * loss_cross.item()
+
+#         # ======================
+#         # 3. 类内紧凑性损失（可选）
+#         # ======================
+#         if (self.intra_weight > 0 and 
+#             cur_proto is not None and 
+#             labels is not None and 
+#             B > 1):
+            
+#             # 计算同类样本间的相似度
+#             same_class = labels.unsqueeze(0) == labels.unsqueeze(1)
+#             same_class.fill_diagonal_(False)
+            
+#             if same_class.sum() > 0:
+#                 intra_sim = torch.matmul(f_norm, f_norm.t())
+                
+#                 # 计算与类中心的相似度
+#                 if cur_proto is not None:
+#                     center_sim = (f_norm * cur_proto_norm[labels]).sum(dim=1)
+#                     intra_loss = 0.7 * (1.0 - intra_sim[same_class]).mean() + 0.3 * (1.0 - center_sim).mean()
+#                 else:
+#                     intra_loss = (1.0 - intra_sim[same_class]).mean()
+                
+#                 total_loss += self.intra_weight * intra_loss
+#                 loss_dict["loss_intra"] = intra_loss.item()
+
+#         return total_loss, loss_dict
 
 # class DomainContrastiveLoss(nn.Module):
 #     def __init__(self, margin=0.5, alpha=1.0, beta=1.0):

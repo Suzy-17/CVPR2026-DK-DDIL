@@ -382,9 +382,15 @@ class Learner(BaseLearner):
                                 temp_weights = 1. * len(temp_weights) * temp_weights / torch.sum(temp_weights)
                                 self._network.backbone.cur_adapter[pos][jj].lora_A.weight.grad = temp_weights.unsqueeze(1) * self._network.backbone.cur_adapter[pos][jj].lora_A.weight.grad
                     optimizer.step()
+                
+                # 再次前向传播，构建全新计算图
+                output = self._network(inputs, test=False)
+                logits = output["logits"]
+                loss = F.cross_entropy(logits, aux_targets)
+                
                 if self._cur_task > 0:
                     orth_loss_specific = compute_orthogonality_loss(self._network.backbone.block_weight_list, self._network.backbone.block_weight)
-                    loss += 0.0001 * orth_loss_specific
+                    loss = loss + 0.0001 * orth_loss_specific
 
 
                 optimizer.zero_grad()

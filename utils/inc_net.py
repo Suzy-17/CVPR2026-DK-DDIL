@@ -230,6 +230,11 @@ def get_backbone(args, pretrained=False):
                 model = vit_cllora.vit_base_patch16_224_cllora(num_classes=0,
                     global_pool=False, drop_path_rate=0.0, tuning_config=tuning_config)
                 model.out_dim=768
+            elif name == "vit_base_patch16_224_in21k_cllora_ipmn":
+                from backbone import vit_cllora_3d
+                model = vit_cllora_3d.vit_base_patch16_224_in21k_cllora_ipmn(num_classes=0,
+                    global_pool=False, drop_path_rate=0.0, tuning_config=tuning_config)
+                model.out_dim=768
             elif name == "vit_base_patch16_224_in21k_cllora":
                 model = vit_cllora.vit_base_patch16_224_in21k_cllora(num_classes=0,
                     global_pool=False, drop_path_rate=0.0, tuning_config=tuning_config)
@@ -271,6 +276,11 @@ def get_backbone(args, pretrained=False):
                 model.out_dim=768
             elif name == "vit_base_patch16_224_in21k_ours":
                 model = vit_ours.vit_base_patch16_224_in21k_ours(num_classes=0,
+                    global_pool=False, drop_path_rate=0.0, tuning_config=tuning_config)
+                model.out_dim=768
+            elif name == "vit_base_patch16_224_in21k_ours_ipmn":
+                from backbone import vit_ours_3d
+                model = vit_ours_3d.vit_base_patch16_224_in21k_ours_ipmn(num_classes=0,
                     global_pool=False, drop_path_rate=0.0, tuning_config=tuning_config)
                 model.out_dim=768
             else:

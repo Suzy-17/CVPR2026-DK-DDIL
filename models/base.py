@@ -10,7 +10,55 @@ from scipy.spatial.distance import cdist
 EPSILON = 1e-8
 batch_size = 64
 
-def convert_cumulative_to_real_labels(cumulative_labels, increment_info, global_class_order=None):
+def convert_menmnist_cumulative_to_real_labels(cumulative_labels, increment_info):
+    """
+    将累积标签转换为真实标签（支持类别累加和重复的场景）
+    
+    参数:
+    cumulative_labels: 累积标签列表或数组
+    increment_info: 增量信息列表，如[9, 7, 4, 2, 2, 8, 8, 11, 11, 11]
+                   - 前7个session: 每个session新增不同数量的类别，类别ID连续累加
+                   - 后3个session: 重复使用前11个类别（类别0-10）
+    
+    返回:
+    真实标签的numpy数组
+    """
+    # 构建累积标签到真实标签的映射
+    cumulative_to_real = {}
+    current_cumulative = 0  # 当前累积标签位置
+    class_offset = 0  # 当前真实类别的起始偏移
+    
+    for session_idx, num_classes in enumerate(increment_info):
+        # print(f"Session {session_idx}: {num_classes} 个类别", end="")
+        
+        # 前8个session：新增类别，类别ID连续累加
+        if session_idx < 8:
+            # print(f" -> 真实类别 {class_offset} 到 {class_offset + num_classes - 1}")
+            # 为当前session的每个累积标签创建映射
+            for i in range(num_classes):
+                cumulative_to_real[current_cumulative] = class_offset + i
+                current_cumulative += 1
+            # 更新类别偏移
+            class_offset += num_classes
+        else:
+            # 后2个session：重复使用类别40-50
+            repeat_start = class_offset - num_classes
+            # print(f" -> 重复使用类别 {repeat_start} 到 {class_offset - 1}")
+            for i in range(num_classes):
+                cumulative_to_real[current_cumulative] = repeat_start + i
+                current_cumulative += 1
+    
+    # 转换标签
+    real_labels = [cumulative_to_real.get(label, -1) for label in cumulative_labels]
+    
+    # print(f"\n累积标签到真实标签的映射:")
+    # print(f"cumulative_to_real: {cumulative_to_real}")
+    # print(f"总共 {class_offset} 个唯一类别 (类别0到{class_offset-1})")
+    # print(f"总共 {current_cumulative} 个累积标签位置")
+    
+    return np.array(real_labels)
+
+def convert_skin_cumulative_to_real_labels(cumulative_labels, increment_info, global_class_order=None):
     """
     将累积标签转换为真实标签
     
@@ -48,6 +96,66 @@ def convert_cumulative_to_real_labels(cumulative_labels, increment_info, global_
     real_labels = [cumulative_to_real.get(label, -1) for label in cumulative_labels]
     print(f"cumulative_to_real:{cumulative_to_real}")
     return np.array(real_labels)
+
+def convert_chest_cumulative_to_real_labels(cumulative_labels, task_order, increments):
+    """
+    将累积标签映射回各任务的原始标签空间
+    
+    参数:
+        cumulative_labels: 整数列表，模型预测的累积标签值（0-9）
+        
+    返回:
+        字典，包含每个任务对应的原始标签列表
+    """
+    # 任务配置信息
+    task_config = {
+        "task_order": task_order,
+        "increments": increments,
+        "label_mappings": {
+            "xray": {"NORMAL": 0, "PNEUMONIA": 1},
+            "GR": {"NORMAL": 0, "COVID": 1},
+            "PD": {"NORMAL": 0, "PNEUMONIA": 1, "COVID": 2},
+            "Radiography": {"NORMAL": 0, "PNEUMONIA": 1, "COVID": 2}
+        }
+    }
+    
+    # 计算各任务的标签范围
+    start_idx = 0
+    task_ranges = {}
+    for task, inc in zip(task_config["task_order"], task_config["increments"]):
+        end_idx = start_idx + inc
+        task_ranges[task] = (start_idx, end_idx)
+        start_idx = end_idx
+    
+    # 创建结果列表
+    mapped_labels = []
+    
+    # 映射每个累积标签
+    for label in cumulative_labels:
+        # 确定标签属于哪个任务
+        for task, (start, end) in task_ranges.items():
+            if start <= label < end:
+                # 计算任务内的相对标签
+                relative_label = label - start
+                
+                # 根据任务类型进行映射
+                if task == "xray":
+                    # xray: 直接使用相对标签 (0->0, 1->1)
+                    mapped_label = relative_label
+                elif task == "GR":
+                    # GR: 0->0, 1->2
+                    mapped_label = 0 if relative_label == 0 else 2
+                else:
+                    # PD和Radiography: 直接使用相对标签 (0->0, 1->1, 2->2)
+                    mapped_label = relative_label
+                
+                mapped_labels.append(mapped_label)
+                break
+        else:
+            # 如果标签不在任何任务范围内
+            raise ValueError(f"标签 {label} 不在任何任务范围内 (0-9)")
+    
+    return mapped_labels
 
 
 class BaseLearner(object):
@@ -163,22 +271,36 @@ class BaseLearner(object):
         cnn_accy = self._evaluate(y_pred, y_true)
         cnn_accy_grouped = None
         if self.args['dataset'] == "SKIN":
-            y_pred_grouped = convert_cumulative_to_real_labels(y_pred.reshape(-1), self.args["increment_per_session"], global_class_order=None)
-            y_true_grouped = convert_cumulative_to_real_labels(y_true, self.args["increment_per_session"], global_class_order=None)
+            y_pred_grouped = convert_skin_cumulative_to_real_labels(y_pred.reshape(-1), self.args["increment_per_session"], global_class_order=None)
+            y_true_grouped = convert_skin_cumulative_to_real_labels(y_true, self.args["increment_per_session"], global_class_order=None)
             cnn_accy_grouped = self._evaluate(y_pred_grouped.reshape(-1,1), y_true_grouped)
-        # elif self.args['dataset'] == 'domainnet':
-        #     y_pred_grouped = y_pred % self.args['increment']
-        #     y_true_grouped = y_true % self.args['increment']
-        #     cnn_accy_grouped = self._evaluate(y_pred_grouped.reshape(-1,1), y_true_grouped)
-        # elif self.args['dataset'] == 'cddb':
-        #     y_pred_grouped = y_pred % self.args['increment']
-        #     y_true_grouped = y_true % self.args['increment']
-        #     cnn_accy_grouped = self._evaluate(y_pred_grouped.reshape(-1,1), y_true_grouped)
+        if self.args['dataset'] == "chest":
+            y_pred_grouped = convert_chest_cumulative_to_real_labels(y_pred.reshape(-1), self.args["task_name"], self.args["increment_per_session"])
+            y_true_grouped = convert_chest_cumulative_to_real_labels(y_true, self.args["task_name"], self.args["increment_per_session"])
+            cnn_accy_grouped = self._evaluate(np.array(y_pred_grouped).reshape(-1,1), np.array(y_true_grouped))
+        elif self.args['dataset'] == 'domainnet':
+            y_pred_grouped = y_pred % self.args['increment']
+            y_true_grouped = y_true % self.args['increment']
+            cnn_accy_grouped = self._evaluate(y_pred_grouped.reshape(-1,1), y_true_grouped)
+        elif self.args['dataset'] == 'cddb':
+            y_pred_grouped = y_pred % self.args['increment']
+            y_true_grouped = y_true % self.args['increment']
+            cnn_accy_grouped = self._evaluate(y_pred_grouped.reshape(-1,1), y_true_grouped)
         elif self.args['dataset'] == 'officehome':
             y_pred_grouped = y_pred % self.args['increment']
             y_true_grouped = y_true % self.args['increment']
             cnn_accy_grouped = self._evaluate(y_pred_grouped.reshape(-1,1), y_true_grouped)
-        
+        elif self.args['dataset'] == 'CystX':
+            y_pred_grouped = y_pred % self.args['increment']
+            y_true_grouped = y_true % self.args['increment']
+            cnn_accy_grouped = self._evaluate(y_pred_grouped.reshape(-1,1), y_true_grouped)
+        elif self.args['dataset'] == 'MEDMNIST':
+            y_pred_grouped = y_pred % self.args['increment']
+            y_true_grouped = y_true % self.args['increment']
+            cnn_accy_grouped = self._evaluate(y_pred_grouped.reshape(-1,1), y_true_grouped)
+            # y_pred_grouped = convert_menmnist_cumulative_to_real_labels(y_pred.reshape(-1), self.args["increment_per_session"])
+            # y_true_grouped = convert_menmnist_cumulative_to_real_labels(y_true, self.args["increment_per_session"])
+            # cnn_accy_grouped = self._evaluate(y_pred_grouped.reshape(-1,1), y_true_grouped)
 
         if hasattr(self, "_class_means"):
             y_pred, y_true = self._eval_nme(self.test_loader, self._class_means)

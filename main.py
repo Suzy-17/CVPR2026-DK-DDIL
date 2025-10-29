@@ -1,5 +1,5 @@
 import os
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+# os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 import json
 import argparse
 from trainer import train
@@ -26,7 +26,7 @@ def load_json(setting_path):
 
 def setup_parser():
     parser = argparse.ArgumentParser(description='Reproduce of multiple pre-trained incremental learning algorithms.')
-    parser.add_argument('--config', type=str, default='exps/domainnet_ours.json',
+    parser.add_argument('--config', type=str, default='exps/cllora/cystx.json',
                         help='Json file of settings.')
     return parser
 

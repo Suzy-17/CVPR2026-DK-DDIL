@@ -17,7 +17,7 @@ import numpy as np
 import torch
 import copy
 # import random
-
+from monai.networks.blocks import PatchEmbeddingBlock
 
 
 # class Adapter_lora(nn.Module):
@@ -631,7 +631,7 @@ class Adapter_lora(nn.Module):
                  adapter_scalar="1.0", 
                  adapter_layernorm_option="in", 
                  max_rank: int = 64, 
-                 min_rank: int = 2, 
+                 min_rank: int = 4, 
                  init_scale: float = 0.02, 
                  temp: float = 2, 
                  reg_alpha: float = 0.1,
@@ -1013,9 +1013,9 @@ class VisionTransformer(nn.Module):
 
         self.tuning_config = tuning_config
         if self.tuning_config.ffn_adapt:
-            print("I'm using ViT with adapters.")
+            print("I'm using 3D ViT with adapters.")
         else:
-            print("I'm using ViT without adapters.")
+            print("I'm using 3D ViT without adapters.")
             self.maskout_block = []
         self.adapt_msa = True
         self.num_classes = num_classes
@@ -1045,10 +1045,35 @@ class VisionTransformer(nn.Module):
             self.block_weight = nn.Parameter(torch.randn(4, len(self.specfic_pos)))
             nn.init.uniform_(self.block_weight, .5, 1.5)
 
+        # # 保存参数用于embed_layer初始化
+        # self.img_size = img_size
+        # self.patch_size = patch_size
+        # self.in_chans = in_chans
+        # self.embed_dim = embed_dim
+        # self.num_heads = num_heads
+        # self.drop_rate = drop_rate
 
-        self.patch_embed = embed_layer(
-            img_size=img_size, patch_size=patch_size, in_chans=in_chans, embed_dim=embed_dim)
-        num_patches = self.patch_embed.num_patches
+        # # 延迟初始化patch_embed
+        # self.patch_embed = None
+        # self.num_patches = None
+        # self.embed_layer = embed_layer  # 保存原始的embed_layer
+
+        # self.patch_embed = embed_layer(
+        #     img_size=img_size, patch_size=patch_size, in_chans=in_chans, embed_dim=embed_dim)
+        # num_patches = self.patch_embed.num_patches
+        self.patch_embed = PatchEmbeddingBlock(
+                in_channels=1,
+                img_size=(112, 56, 32),  #(64, 48, 8)
+                patch_size=(16, 8, 8),
+                hidden_size=self.embed_dim,
+                num_heads=num_heads,
+                proj_type="conv",
+                pos_embed_type="learnable",
+                dropout_rate=drop_rate,
+                spatial_dims=3
+            )
+        print("I'm using PatchEmbeddingBlock of monai to embed 3D images.")
+        num_patches = 196
 
         self.cls_token = nn.Parameter(torch.zeros(1, 1, embed_dim))
         self.dist_token = nn.Parameter(torch.zeros(1, 1, embed_dim)) if distilled else None
@@ -1106,6 +1131,57 @@ class VisionTransformer(nn.Module):
         if self.msa_adapt:
             self.get_new_adapter_initial_msa()
 
+    # def _initialize_patch_embed(self, x):
+    #     """根据输入张量维度初始化patch embedding"""
+    #     if x.dim() == 5:  # 3D输入 (B, C, D, H, W)
+    #         batch_size, channels, d, h, w = x.shape
+    #         self.patch_embed = PatchEmbeddingBlock(
+    #             in_channels=channels,
+    #             img_size=(d, h, w),  #(64, 48, 8)
+    #             patch_size=(16, 16, 8),
+    #             hidden_size=self.embed_dim,
+    #             num_heads=self.num_heads,
+    #             proj_type="conv",
+    #             pos_embed_type="learnable",
+    #             dropout_rate=self.drop_rate,
+    #             spatial_dims=3
+    #         )
+    #         print("I'm using PatchEmbeddingBlock of monai to embed 3D images.")
+    #         self.num_patches = self.get_num_patches(x)
+            
+    #     else:
+    #         # 使用原来的2D patch embedding
+    #         self.patch_embed = PatchEmbed(
+    #         img_size=self.img_size, 
+    #         patch_size=self.patch_size, 
+    #         in_chans=self.in_chans, 
+    #         embed_dim=self.embed_dim)
+    #         self.num_patches = self.patch_embed.num_patches
+            
+    #     self.pos_embed = nn.Parameter(torch.zeros(1, self.num_patches + self.num_tokens, self.embed_dim))
+        
+    #     self.patch_embed = self.patch_embed.to(self._device)
+    #     self.pos_embed = nn.Parameter(self.pos_embed.to(self._device))
+    
+    # def get_num_patches(self, x):
+    #     """
+    #     计算patch数量
+        
+    #     Args:
+    #         patch_embed: PatchEmbeddingBlock实例
+    #         img_input: 输入图像张量 (B, C, D, H, W)
+    #     """
+    #     batch_size, channels, d, h, w = x.shape
+    #     conv = self.patch_embed.patch_embeddings
+    #     stride = conv.stride
+        
+    #     patches_d = d // stride[0]
+    #     patches_h = h // stride[1] 
+    #     patches_w = w // stride[2]
+    #     num_patches_per_sample = patches_d * patches_h * patches_w
+
+    #     return num_patches_per_sample
+    
     def init_weights(self, mode=''):
         raise NotImplementedError()
 
@@ -1237,6 +1313,10 @@ class VisionTransformer(nn.Module):
             self.get_new_adapter_msa()
 
     def forward_train(self, x):
+        # # 延迟初始化patch_embed
+        # if self.patch_embed is None:
+        #     self._initialize_patch_embed(x)
+
         B = x.shape[0]
         x = self.patch_embed(x)
 
@@ -1280,6 +1360,10 @@ class VisionTransformer(nn.Module):
         return outcome
 
     def forward_test(self, x, use_init_ptm=False):
+        # 延迟初始化patch_embed
+        # if self.patch_embed is None:
+        #     self._initialize_patch_embed(x)
+
         B = x.shape[0]
         x = self.patch_embed(x)
 
@@ -1372,6 +1456,10 @@ class VisionTransformer(nn.Module):
             return output
 
     def forward_proto(self, x, adapt_index):
+        # 延迟初始化patch_embed
+        # if self.patch_embed is None:
+        #     self._initialize_patch_embed(x)
+
         B = x.shape[0]
         x = self.patch_embed(x)
 
@@ -1443,6 +1531,10 @@ class VisionTransformer(nn.Module):
         return output
 
     def forward_general_cls(self, x, t_idx):
+        # 延迟初始化patch_embed
+        # if self.patch_embed is None:
+        #     self._initialize_patch_embed(x)
+
         B = x.shape[0]
         x = self.patch_embed(x)
 
@@ -1532,6 +1624,65 @@ def vit_base_patch16_224_ours(pretrained=False, **kwargs):
     return model
 
 def vit_base_patch16_224_in21k_ours(pretrained=False, **kwargs):
+    
+    model = VisionTransformer(patch_size=16, embed_dim=768, depth=12, num_heads=12, mlp_ratio=4, qkv_bias=True,
+        norm_layer=partial(nn.LayerNorm, eps=1e-6), **kwargs)
+
+    checkpoint_model=timm.create_model("vit_base_patch16_224_in21k", pretrained=True, num_classes=0)
+    state_dict = checkpoint_model.state_dict()
+    for key in list(state_dict.keys()):
+        if 'qkv.weight' in key:
+            qkv_weight = state_dict.pop(key)
+            q_weight = qkv_weight[:768]
+            k_weight = qkv_weight[768:768*2]
+            v_weight = qkv_weight[768*2:]
+            state_dict[key.replace('qkv.weight', 'q_proj.weight')] = q_weight
+            state_dict[key.replace('qkv.weight', 'k_proj.weight')] = k_weight
+            state_dict[key.replace('qkv.weight', 'v_proj.weight')] = v_weight
+        elif 'qkv.bias' in key:
+            qkv_bias = state_dict.pop(key)
+            q_bias = qkv_bias[:768]
+            k_bias = qkv_bias[768:768*2]
+            v_bias = qkv_bias[768*2:]
+            state_dict[key.replace('qkv.bias', 'q_proj.bias')] = q_bias
+            state_dict[key.replace('qkv.bias', 'k_proj.bias')] = k_bias
+            state_dict[key.replace('qkv.bias', 'v_proj.bias')] = v_bias
+    # second, modify the mlp.fc.weight to match fc.weight
+    for key in list(state_dict.keys()):
+        if 'mlp.fc' in key:
+            fc_weight = state_dict.pop(key)
+            state_dict[key.replace('mlp.', '')] = fc_weight
+
+    msg = model.load_state_dict(state_dict, strict=False)
+    print(msg)
+
+    # freeze all but the adapter
+    for name, p in model.named_parameters():
+        if name in msg.missing_keys:
+            p.requires_grad = True
+        else:
+            p.requires_grad = False
+
+
+    # if not model.msa_adapt:
+    #     for adapter_temp in model.cur_adapter:
+    #         #for adapter in adapter_temp:
+    #         for param in adapter_temp.lora_B.parameters():
+    #             param.requires_grad = False
+    # else:
+    #     for i in model.adapt_pos:
+    #         #if i in model.general_pos:
+    #         if i in model.general_pos:
+    #             pos = model.adapt_pos.index(i)
+    #             for j in range(len(model.msa)):
+    #                 if model.msa[j] == 1:
+    #                 #for adapter in adapter_temp:
+    #                     for param in model.cur_adapter[pos][j].lora_B.parameters():
+    #                         param.requires_grad = False
+
+    return model
+
+def vit_base_patch16_224_in21k_ours_ipmn(pretrained=False, **kwargs):
     
     model = VisionTransformer(patch_size=16, embed_dim=768, depth=12, num_heads=12, mlp_ratio=4, qkv_bias=True,
         norm_layer=partial(nn.LayerNorm, eps=1e-6), **kwargs)
