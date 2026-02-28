@@ -152,6 +152,7 @@ After downloading and preprocessing, place all dataset files under the `./data/`
 
 The expected directory structure is:
 
+```
 data/
 ├── Skin/
 │ ├── BCN/
@@ -182,6 +183,8 @@ data/
 ├── Art_train.txt
 ├── Art_test.txt
 └── ...
+
+```
 
 <!-- ```
     Skin
