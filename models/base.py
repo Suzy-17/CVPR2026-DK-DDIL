@@ -2,6 +2,7 @@ import copy
 import logging
 import numpy as np
 import torch
+import os
 from torch import nn
 from torch.utils.data import DataLoader
 from utils.toolkit import tensor2numpy, accuracy
@@ -9,54 +10,6 @@ from scipy.spatial.distance import cdist
 
 EPSILON = 1e-8
 batch_size = 64
-
-def convert_menmnist_cumulative_to_real_labels(cumulative_labels, increment_info):
-    """
-    将累积标签转换为真实标签（支持类别累加和重复的场景）
-    
-    参数:
-    cumulative_labels: 累积标签列表或数组
-    increment_info: 增量信息列表，如[9, 7, 4, 2, 2, 8, 8, 11, 11, 11]
-                   - 前7个session: 每个session新增不同数量的类别，类别ID连续累加
-                   - 后3个session: 重复使用前11个类别（类别0-10）
-    
-    返回:
-    真实标签的numpy数组
-    """
-    # 构建累积标签到真实标签的映射
-    cumulative_to_real = {}
-    current_cumulative = 0  # 当前累积标签位置
-    class_offset = 0  # 当前真实类别的起始偏移
-    
-    for session_idx, num_classes in enumerate(increment_info):
-        # print(f"Session {session_idx}: {num_classes} 个类别", end="")
-        
-        # 前8个session：新增类别，类别ID连续累加
-        if session_idx < 8:
-            # print(f" -> 真实类别 {class_offset} 到 {class_offset + num_classes - 1}")
-            # 为当前session的每个累积标签创建映射
-            for i in range(num_classes):
-                cumulative_to_real[current_cumulative] = class_offset + i
-                current_cumulative += 1
-            # 更新类别偏移
-            class_offset += num_classes
-        else:
-            # 后2个session：重复使用类别40-50
-            repeat_start = class_offset - num_classes
-            # print(f" -> 重复使用类别 {repeat_start} 到 {class_offset - 1}")
-            for i in range(num_classes):
-                cumulative_to_real[current_cumulative] = repeat_start + i
-                current_cumulative += 1
-    
-    # 转换标签
-    real_labels = [cumulative_to_real.get(label, -1) for label in cumulative_labels]
-    
-    # print(f"\n累积标签到真实标签的映射:")
-    # print(f"cumulative_to_real: {cumulative_to_real}")
-    # print(f"总共 {class_offset} 个唯一类别 (类别0到{class_offset-1})")
-    # print(f"总共 {current_cumulative} 个累积标签位置")
-    
-    return np.array(real_labels)
 
 def convert_skin_cumulative_to_real_labels(cumulative_labels, increment_info, global_class_order=None):
     """
@@ -95,67 +48,9 @@ def convert_skin_cumulative_to_real_labels(cumulative_labels, increment_info, gl
     # 转换标签
     real_labels = [cumulative_to_real.get(label, -1) for label in cumulative_labels]
     print(f"cumulative_to_real:{cumulative_to_real}")
+    logging.info(f"cumulative_to_real:{cumulative_to_real}")
     return np.array(real_labels)
 
-def convert_chest_cumulative_to_real_labels(cumulative_labels, task_order, increments):
-    """
-    将累积标签映射回各任务的原始标签空间
-    
-    参数:
-        cumulative_labels: 整数列表，模型预测的累积标签值（0-9）
-        
-    返回:
-        字典，包含每个任务对应的原始标签列表
-    """
-    # 任务配置信息
-    task_config = {
-        "task_order": task_order,
-        "increments": increments,
-        "label_mappings": {
-            "xray": {"NORMAL": 0, "PNEUMONIA": 1},
-            "GR": {"NORMAL": 0, "COVID": 1},
-            "PD": {"NORMAL": 0, "PNEUMONIA": 1, "COVID": 2},
-            "Radiography": {"NORMAL": 0, "PNEUMONIA": 1, "COVID": 2}
-        }
-    }
-    
-    # 计算各任务的标签范围
-    start_idx = 0
-    task_ranges = {}
-    for task, inc in zip(task_config["task_order"], task_config["increments"]):
-        end_idx = start_idx + inc
-        task_ranges[task] = (start_idx, end_idx)
-        start_idx = end_idx
-    
-    # 创建结果列表
-    mapped_labels = []
-    
-    # 映射每个累积标签
-    for label in cumulative_labels:
-        # 确定标签属于哪个任务
-        for task, (start, end) in task_ranges.items():
-            if start <= label < end:
-                # 计算任务内的相对标签
-                relative_label = label - start
-                
-                # 根据任务类型进行映射
-                if task == "xray":
-                    # xray: 直接使用相对标签 (0->0, 1->1)
-                    mapped_label = relative_label
-                elif task == "GR":
-                    # GR: 0->0, 1->2
-                    mapped_label = 0 if relative_label == 0 else 2
-                else:
-                    # PD和Radiography: 直接使用相对标签 (0->0, 1->1, 2->2)
-                    mapped_label = relative_label
-                
-                mapped_labels.append(mapped_label)
-                break
-        else:
-            # 如果标签不在任何任务范围内
-            raise ValueError(f"标签 {label} 不在任何任务范围内 (0-9)")
-    
-    return mapped_labels
 
 
 class BaseLearner(object):
@@ -207,38 +102,211 @@ class BaseLearner(object):
             self._reduce_exemplar(data_manager, per_class)
             self._construct_exemplar(data_manager, per_class)
 
-    def tsne(self,showcenters=False,Normalize=False):
+    def tsne(self, showcenters=False, Normalize=True, dataset_type='both', 
+         filter_outliers=True, sample_ratio=1.0, max_points=2000, 
+         umap_params=None, figsize=(10, 8)):
         import umap
         import matplotlib.pyplot as plt
-        print('now draw tsne results of extracted features.')
-        tot_classes=self._total_classes
-        test_dataset = self.data_manager.get_dataset(np.arange(0, tot_classes), source='test', mode='test')
-        valloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=4)
-        vectors, y_true = self._extract_vectors(valloader)
-        if showcenters:
-            fc_weight=self._network.fc.proj.cpu().detach().numpy()[:tot_classes]
-            print(fc_weight.shape)
-            vectors=np.vstack([vectors,fc_weight])
-        
-        if Normalize:
-            vectors = vectors / np.linalg.norm(vectors, axis=1, keepdims=True)
+        import torch
+        import numpy as np
+        import os
+        import random
+        from sklearn.manifold import TSNE
+        from sklearn.preprocessing import StandardScaler
+        from sklearn.neighbors import LocalOutlierFactor
 
-        embedding = umap.UMAP(n_neighbors=5,
-                      min_dist=0.3,
-                      metric='correlation').fit_transform(vectors)
-        
-        if showcenters:
-            clssscenters=embedding[-tot_classes:,:]
-            centerlabels=np.arange(tot_classes)
-            embedding=embedding[:-tot_classes,:]
-        scatter=plt.scatter(embedding[:,0],embedding[:,1],c=y_true,s=20,cmap=plt.cm.get_cmap("tab20"))
-        plt.legend(*scatter.legend_elements())
-        if showcenters:
-            plt.scatter(clssscenters[:,0],clssscenters[:,1],marker='*',s=50,c=centerlabels,cmap=plt.cm.get_cmap("tab20"),edgecolors='black')
-        
-        plt.savefig(str(self.args['model_name'])+str(tot_classes)+'tsne.pdf')
-        plt.close()
+        print(f'now draw t-SNE/UMAP results for {dataset_type} dataset.')
 
+        # 记录当前模型和随机数状态
+        was_training = self._network.training
+        rng_state_torch = torch.get_rng_state()
+        rng_state_cuda = torch.cuda.get_rng_state_all()
+        rng_state_np = np.random.get_state()
+        rng_state_py = random.getstate()
+
+        try:
+            # 固定随机性
+            seed = self.args.get('seed', 0)
+            torch.manual_seed(seed)
+            np.random.seed(seed)
+            random.seed(seed)
+
+            tot_classes = self._total_classes
+            
+            # 1. 支持训练集、测试集或两者同时处理
+            datasets = {}
+            
+            if dataset_type in ['train', 'both']:
+                train_dataset = self.data_manager.get_dataset(
+                    np.arange(0, tot_classes), source='train', mode='test'
+                )
+                datasets['train'] = train_dataset
+            
+            if dataset_type in ['test', 'both']:
+                test_dataset = self.data_manager.get_dataset(
+                    np.arange(0, tot_classes), source='test', mode='test'
+                )
+                datasets['test'] = test_dataset
+            
+            # 存储每个数据集的特征和标签
+            dataset_features = {}
+            
+            # 备份BatchNorm统计量
+            bn_backup = {}
+            for name, m in self._network.named_modules():
+                if isinstance(m, torch.nn.BatchNorm2d):
+                    bn_backup[name] = (
+                        m.running_mean.clone(),
+                        m.running_var.clone()
+                    )
+
+            # 提取所有数据集的特征
+            for dataset_name, dataset in datasets.items():
+                valloader = DataLoader(
+                    dataset, batch_size=self.args.get('batch_size', 64),
+                    shuffle=False, num_workers=0
+                )
+                
+                vectors, y_true = self._extract_vectors(valloader)
+                
+                # 标签处理
+                if self.args['dataset'] == "SKIN":
+                    y_true = convert_skin_cumulative_to_real_labels(y_true, self.args["increment_per_session"], global_class_order=None)
+                elif self.args['dataset'] in ['officehome', 'CystX']:
+                    y_true = y_true % self.args['increment']
+                
+                dataset_features[dataset_name] = {
+                    'vectors': vectors,
+                    'y_true': y_true
+                }
+
+            # 恢复BatchNorm统计量
+            for name, m in self._network.named_modules():
+                if isinstance(m, torch.nn.BatchNorm2d):
+                    m.running_mean, m.running_var = bn_backup[name]
+
+            # 2. 分别处理每个数据集
+            for dataset_name, features in dataset_features.items():
+                vectors = features['vectors']
+                y_true = features['y_true']
+                
+                # 异常值过滤
+                if filter_outliers and len(vectors) > 100:
+                    try:
+                        lof = LocalOutlierFactor(n_neighbors=min(20, len(vectors)-1), contamination=0.1)
+                        outlier_labels = lof.fit_predict(vectors)
+                        mask = outlier_labels == 1  # 保留非异常点
+                        
+                        print(f"Filtered {np.sum(~mask)} outliers from {len(vectors)} {dataset_name} samples")
+                        
+                        vectors = vectors[mask]
+                        y_true = y_true[mask]
+                    except Exception as e:
+                        print(f"Outlier filtering failed for {dataset_name}: {e}, using all samples")
+
+                # 采样策略（防止数据点过多）
+                if len(vectors) > max_points:
+                    indices = np.random.choice(len(vectors), max_points, replace=False)
+                    vectors = vectors[indices]
+                    y_true = y_true[indices]
+                    print(f"Sampled {max_points} points from original {len(vectors)} {dataset_name} points")
+                elif sample_ratio < 1.0:
+                    sample_size = int(len(vectors) * sample_ratio)
+                    indices = np.random.choice(len(vectors), sample_size, replace=False)
+                    vectors = vectors[indices]
+                    y_true = y_true[indices]
+                    print(f"Sampled {sample_size} points (ratio: {sample_ratio}) from {dataset_name}")
+
+                if len(vectors) < 10:  # 确保有足够的数据点
+                    print(f"⚠️ Not enough data points in {dataset_name} for visualization")
+                    continue
+
+                if Normalize:
+                    vectors = vectors / np.linalg.norm(vectors, axis=1, keepdims=True)
+
+                # 添加类别中心（可选）
+                if showcenters:
+                    fc_weight = self._network.fc.weight.cpu().detach().numpy()[:tot_classes]
+                    vectors_with_centers = np.vstack([vectors, fc_weight])
+                else:
+                    vectors_with_centers = vectors
+
+                # 可配置的UMAP参数
+                default_umap_params = {
+                    'n_neighbors': 15,
+                    'min_dist': 0.1,
+                    'metric': 'cosine',
+                    'random_state': seed
+                }
+                if umap_params:
+                    default_umap_params.update(umap_params)
+
+                # 降维可视化
+                embedding = umap.UMAP(**default_umap_params).fit_transform(vectors_with_centers)
+                
+                # 分离类别中心点
+                if showcenters:
+                    class_centers = embedding[-tot_classes:, :]
+                    center_labels = np.arange(tot_classes)
+                    embedding = embedding[:-tot_classes, :]
+                
+                # 创建图像
+                plt.figure(figsize=figsize)
+                
+                # 选择颜色映射
+                n_unique_classes = len(np.unique(y_true))
+                colors = plt.cm.get_cmap("tab20", n_unique_classes) if n_unique_classes <= 20 else plt.cm.get_cmap("viridis", n_unique_classes)
+                
+                # 绘制数据点
+                scatter = plt.scatter(
+                    embedding[:, 0], embedding[:, 1],
+                    c=y_true, s=40, 
+                    cmap=colors, alpha=0.8,
+                    edgecolors='white', linewidth=0.3
+                )
+                
+                # 添加类别中心
+                if showcenters:
+                    plt.scatter(
+                        class_centers[:, 0], class_centers[:, 1],
+                        marker='*', s=200, c=center_labels,
+                        cmap=colors, edgecolors='black', linewidth=1.5,
+                        label='Class Centers'
+                    )
+                
+                # 添加颜色条和图例
+                plt.colorbar(scatter, label='Class Labels')
+                if showcenters:
+                    plt.legend()
+                
+                plt.title(f't-SNE/UMAP Visualization ({dataset_name} set)\n'
+                        f'Total points: {len(embedding)}, Classes: {n_unique_classes}')
+                plt.xlabel('UMAP Dimension 1')
+                plt.ylabel('UMAP Dimension 2')
+                plt.grid(True, alpha=0.3)
+                
+                # 保存图像
+                os.makedirs(os.path.join(self.args['logs_name'], "tsne"), exist_ok=True)
+                save_path = os.path.join(
+                    self.args['logs_name'], "tsne",
+                    f"{self.args['model_name']}{tot_classes}_{dataset_name}_tsne.png"
+                )
+                plt.savefig(save_path, bbox_inches='tight', dpi=300)
+                plt.close()
+                print(f"✅ {dataset_name} set t-SNE saved to {save_path}")
+
+        finally:
+            # 恢复所有状态
+            if was_training:
+                self._network.train()
+            else:
+                self._network.eval()
+
+            torch.set_rng_state(rng_state_torch)
+            torch.cuda.set_rng_state_all(rng_state_cuda)
+            np.random.set_state(rng_state_np)
+            random.setstate(rng_state_py)
+            torch.cuda.empty_cache()
 
     def save_checkpoint(self, filename):
         self._network.cpu()
@@ -271,20 +339,12 @@ class BaseLearner(object):
         cnn_accy = self._evaluate(y_pred, y_true)
         cnn_accy_grouped = None
         if self.args['dataset'] == "SKIN":
+            # y_pred_grouped = y_pred.reshape(-1)
             y_pred_grouped = convert_skin_cumulative_to_real_labels(y_pred.reshape(-1), self.args["increment_per_session"], global_class_order=None)
             y_true_grouped = convert_skin_cumulative_to_real_labels(y_true, self.args["increment_per_session"], global_class_order=None)
-            cnn_accy_grouped = self._evaluate(y_pred_grouped.reshape(-1,1), y_true_grouped)
-        if self.args['dataset'] == "chest":
-            y_pred_grouped = convert_chest_cumulative_to_real_labels(y_pred.reshape(-1), self.args["task_name"], self.args["increment_per_session"])
-            y_true_grouped = convert_chest_cumulative_to_real_labels(y_true, self.args["task_name"], self.args["increment_per_session"])
-            cnn_accy_grouped = self._evaluate(np.array(y_pred_grouped).reshape(-1,1), np.array(y_true_grouped))
-        elif self.args['dataset'] == 'domainnet':
-            y_pred_grouped = y_pred % self.args['increment']
-            y_true_grouped = y_true % self.args['increment']
-            cnn_accy_grouped = self._evaluate(y_pred_grouped.reshape(-1,1), y_true_grouped)
-        elif self.args['dataset'] == 'cddb':
-            y_pred_grouped = y_pred % self.args['increment']
-            y_true_grouped = y_true % self.args['increment']
+            # print(y_pred_grouped)
+            print(y_true)
+            print(y_true_grouped)
             cnn_accy_grouped = self._evaluate(y_pred_grouped.reshape(-1,1), y_true_grouped)
         elif self.args['dataset'] == 'officehome':
             y_pred_grouped = y_pred % self.args['increment']
@@ -294,13 +354,6 @@ class BaseLearner(object):
             y_pred_grouped = y_pred % self.args['increment']
             y_true_grouped = y_true % self.args['increment']
             cnn_accy_grouped = self._evaluate(y_pred_grouped.reshape(-1,1), y_true_grouped)
-        elif self.args['dataset'] == 'MEDMNIST':
-            y_pred_grouped = y_pred % self.args['increment']
-            y_true_grouped = y_true % self.args['increment']
-            cnn_accy_grouped = self._evaluate(y_pred_grouped.reshape(-1,1), y_true_grouped)
-            # y_pred_grouped = convert_menmnist_cumulative_to_real_labels(y_pred.reshape(-1), self.args["increment_per_session"])
-            # y_true_grouped = convert_menmnist_cumulative_to_real_labels(y_true, self.args["increment_per_session"])
-            # cnn_accy_grouped = self._evaluate(y_pred_grouped.reshape(-1,1), y_true_grouped)
 
         if hasattr(self, "_class_means"):
             y_pred, y_true = self._eval_nme(self.test_loader, self._class_means)

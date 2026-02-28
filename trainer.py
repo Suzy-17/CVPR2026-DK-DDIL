@@ -15,7 +15,7 @@ import seaborn as sns
 def train(args):
     seed_list = copy.deepcopy(args["seed"])
     device = copy.deepcopy(args["device"])
-
+    # seed_list = [1994, 1995, 1996, 1997]
     for seed in seed_list:
         args["seed"] = seed
         args["device"] = device
@@ -25,12 +25,13 @@ def train(args):
 def _train(args):
 
     init_cls = 0 if args ["init_cls"] == args["increment"] else args["init_cls"]
-    logs_name = "logs/{}/{}/{}/{}/{}".format(args["model_name"],args["dataset"], init_cls, args['increment'],args["prefix"])
+    logs_name = "logs/{}/{}/{}/{}/{}/{}".format(args["seed"],args["model_name"],args["dataset"], init_cls, args['increment'],args["prefix"])
     args["logs_name"] = logs_name
     if not os.path.exists(logs_name):
         os.makedirs(logs_name)
 
-    logfilename = "logs/{}/{}/{}/{}/{}/{}_{}".format(
+    logfilename = "logs/{}/{}/{}/{}/{}/{}/{}_{}".format(
+        args["seed"],
         args["model_name"],
         args["dataset"],
         init_cls,
@@ -119,15 +120,10 @@ def _train(args):
             nme_matrix.append(nme_values)
 
             cnn_curve["top1"].append(cnn_accy["top1"])
-            # cnn_curve["top5"].append(cnn_accy["top5"])
-
             nme_curve["top1"].append(nme_accy["top1"])
-            # nme_curve["top5"].append(nme_accy["top5"])
 
             logging.info("CNN top1 curve: {}".format(cnn_curve["top1"]))
-            # logging.info("CNN top5 curve: {}".format(cnn_curve["top5"]))
             logging.info("NME top1 curve: {}".format(nme_curve["top1"]))
-            # logging.info("NME top5 curve: {}\n".format(nme_curve["top5"]))
 
             print('Average Accuracy (CNN):', sum(cnn_curve["top1"])/len(cnn_curve["top1"]))
             print('Average Accuracy (NME):', sum(nme_curve["top1"])/len(nme_curve["top1"]))
@@ -138,17 +134,13 @@ def _train(args):
             logging.info("No NME accuracy.")
             logging.info("CNN: {}".format(cnn_accy["grouped"]))
             if cnn_accy_grouped is not None:
-                cnn_accy = cnn_accy_grouped
-                logging.info("CNN grouped: {}".format(cnn_accy["grouped"]))
+                logging.info("CNN grouped: {}".format(cnn_accy_grouped["grouped"]))
             cnn_keys = [key for key in cnn_accy["grouped"].keys() if '-' in key]
             cnn_values = [cnn_accy["grouped"][key] for key in cnn_keys]
             cnn_matrix.append(cnn_values)
 
             cnn_curve["top1"].append(cnn_accy["top1"])
-            # cnn_curve["top5"].append(cnn_accy["top5"])
-
-            logging.info("CNN top1 curve: {}".format(cnn_curve["top1"]))
-            # logging.info("CNN top5 curve: {}\n".format(cnn_curve["top5"]))
+            logging.info("CNN top1 curve: {}".format([round(float(x), 2) for x in cnn_curve["top1"]]))
 
             print('Average Accuracy (CNN):', sum(cnn_curve["top1"])/len(cnn_curve["top1"]))
             logging.info("Average Accuracy (CNN): {} \n".format(sum(cnn_curve["top1"])/len(cnn_curve["top1"])))

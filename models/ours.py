@@ -14,7 +14,7 @@ import math
 import random
 import os 
 num_workers = 8
-
+from thop import profile
 
 def _KD_loss(pred, soft, T):
     pred = torch.log_softmax(pred / T, dim=1)
@@ -114,9 +114,6 @@ class Learner(BaseLearner):
         var_threshold = 0.15  # 方差阈值
         with torch.no_grad():
             # replace proto for each adapter in the current task
-            # if self.args["dataset"] == "SKIN":
-            #     # 获取历史原型（假设存储在self.hist_protos中）
-            #     hist_protos = getattr(self, 'hist_protos', {})
             if self.use_init_ptm:
                 start_idx = -1
             else:
@@ -143,23 +140,11 @@ class Learner(BaseLearner):
                 label_list = torch.cat(label_list, dim=0)
 
                 class_list = np.unique(self.train_dataset_for_protonet.labels)
-                # model.fc.weight.data[self._known_classes:self._total_classes, index*self._network.out_dim:(index+1)*self._network.out_dim] = self._network.fc_list[-1].weight.data
-                # if self.args["dataset"] == "SKIN":
-                #     current_protos = {}
+
                 class_label = []
                 for class_index in class_list:
                     data_index = (label_list == class_index).nonzero().squeeze(-1)
                     embedding = embedding_list[data_index]
-                    
-                    # # 计算当前类别的样本数量和特征方差
-                    # n_samples = embedding.shape[0]
-                    # variances = torch.var(embedding, dim=0)
-                    # avg_variance = torch.mean(variances).item()
-                    
-                    # # 计算原型置信度
-                    # sample_confidence = min(1.0, n_samples / (2 * min_samples)) if n_samples > 0 else 0.0
-                    # var_confidence = max(0.0, 1.0 - avg_variance / var_threshold)
-                    # confidence = math.sqrt(sample_confidence * var_confidence)
                     
                     proto = embedding.mean(0)
                     if index == self._cur_task:
@@ -235,6 +220,7 @@ class Learner(BaseLearner):
     
     def _train(self, train_loader, test_loader):
         self._network.to(self._device)
+
         if self.task_increments:
             self.inc = self.task_increments[self._cur_task]
         
@@ -300,9 +286,6 @@ class Learner(BaseLearner):
         else: 
             epochs = self.args['later_epochs'] 
 
-        # # 修复：更安全的参数检查和LoRA组件访问
-        # self._check_lora_parameters()
-        
         # 在训练开始前初始化LoRA的有效秩
         self._initialize_lora_ranks()
         
@@ -319,37 +302,20 @@ class Learner(BaseLearner):
             # if epoch <10:
             if self.lora_alpha is None:
                 logging.info(f"lora_alpha is None, compute dynamic alpha at epoch {epoch}")
-                self.lora_alpha = self._compute_dynamic_alpha(
-                    alpha_config = {'initial':0.9, 'final':0.1, 'total_epochs':epochs, 'schedule':'cosine'}, # exponential, cosine
+                lora_alpha = self._compute_dynamic_alpha(
+                    alpha_config = {'initial':1-self.args["alpha_init"], 'final':self.args["alpha_init"], 'total_epochs':epochs, 'schedule':'cosine'}, # exponential, cosine
                     current_epoch = epoch)
+            else:
+                lora_alpha = self.lora_alpha
             federated_adapter_averaging(
                 cur_adapter=self._network.backbone.cur_adapter,
                 old_adapter_list=self._network.backbone.old_adapter_list,
                 target_params=['lora_B'],  # 自动检测并平均所有参数, 'lora_B'
-                alpha=self.lora_alpha #1-alpha
+                alpha=1-lora_alpha #1-alpha
             )
-            # weighted_federated_averaging(
-            #     cur_adapter=self._network.backbone.cur_adapter,
-            #     old_adapter_list=self._network.backbone.old_adapter_list,
-            #     target_params = ['lora_A', 'lora_B'],
-            #     weights = None,
-            #     layer_indices = None,
-            #     adapter_indices = None)
-            # selective_federated_averaging(
-            #     cur_adapter=self._network.backbone.cur_adapter,
-            #     old_adapter_list=self._network.backbone.old_adapter_list,
-            #     target_params= ['lora_B'], 
-            #     similarity_threshold = 0.75,
-            #     layer_indices = None,
-            #     adapter_indices = None)
+
             # 训练一个epoch
             train_loss, train_acc = self._train_epoch(train_loader, optimizer, epoch)
-            
-            # # 验证
-            # if test_loader is not None:
-            #     val_acc, val_loss = self._validate_epoch(test_loader)
-            # else:
-            #     val_acc, val_loss = train_acc, train_loss
             
             val_acc, val_loss = train_acc, train_loss
                 
@@ -362,7 +328,6 @@ class Learner(BaseLearner):
             
             # 保存最佳模型
             is_best = val_loss < best_loss
-            # is_best = val_acc > best_acc
             if is_best and epoch > self.pretrain_epochs:#self.pretrain_epochs:
                 best_loss = val_loss
                 best_acc = val_acc
@@ -392,22 +357,11 @@ class Learner(BaseLearner):
             if patience_counter >= patience:
                 logging.info(f"Early stopping at epoch {epoch + 1}")
                 break
-            
-            # # 定期进行LoRA剪枝（可选）
-            # if (epoch + 1) % getattr(self.args, 'prune_interval', 20) == 0:
-            #     self._prune_lora_adapters(epoch)
         
         prog_bar.close()
         
         # 加载最佳模型
         self._load_best_model()
-        
-        # lora_adapters = self._get_lora_adapters()
-        # for lora in lora_adapters:
-        #     # if hasattr(lora, 'commit_current_as_base'):
-        #     #     lora.commit_current_as_base()
-        #     if hasattr(lora, 'prune_parameters'):
-        #         lora.prune_parameters()
         
         # 训练结束后的LoRA统计
         self._log_lora_statistics()
@@ -486,24 +440,20 @@ class Learner(BaseLearner):
             
             # 计算损失
             ce_loss = F.cross_entropy(logits, aux_targets)
+
             # 计算anti-prototype loss
             if epoch_index > self.pretrain_epochs:
-                # anti_prototype_loss = self.anti_prototype_loss(features = output['features'], labels = aux_targets, cur_proto = self.cur_class_proto, prev_proto = self.class_proto)
                 anti_prototype_loss = self.anti_prototype_loss(features = output['features'], labels = aux_targets, cur_proto = self.cur_class_proto, prev_proto = self.class_proto, prev_proto_labels=self.class_label)
-                # ce_loss = self.orth_loss(output['features'])#torch.tensor(0.0, device=self._device)
             else:
-                # ce_loss = F.cross_entropy(logits, aux_targets)
-                # torch.tensor([0.0], device=self._device)# 
                 anti_prototype_loss = self.anti_prototype_loss(output['features'], None, None, self.class_proto)
-                # anti_prototype_loss = torch.tensor([0.0], device=self._device)#self.anti_prototype_loss(output['features'], labels = aux_targets, cur_proto = None, prev_proto = self.class_proto, prev_proto_labels=self.class_label)
-            # # 添加LoRA正则化损失
+            
+            # 添加LoRA正则化损失
             reg_loss = torch.tensor(0.0, device=self._device)
             for lora in lora_adapters:
                 if hasattr(lora, 'regularization_loss'):
                     reg_loss += lora.regularization_loss()
             
-            
-            total_loss_batch = ce_loss+ self.reg_weight * reg_loss + anti_prototype_loss[0]#+ reg_loss#+ reg_loss#+ reg_loss + 1 * anti_prototype_loss[0] # ce_loss + 
+            total_loss_batch = ce_loss  + self.reg_weight * reg_loss + anti_prototype_loss[0] #+ reg_loss#+ reg_loss#+ reg_loss + 1 * anti_prototype_loss[0] # ce_loss + 
             if self._cur_task > 0:
                 orth_loss_specific = compute_orthogonality_loss(self._network.backbone.block_weight_list, self._network.backbone.block_weight)
                 total_loss_batch += self.lora_orth_weight * orth_loss_specific #  
@@ -527,12 +477,6 @@ class Learner(BaseLearner):
         avg_loss = total_loss / len(train_loader) if len(train_loader) > 0 else 0.0
         avg_acc = 100.0 * correct / total if total > 0 else 0.0
         self.cur_class_proto = cur_class_proto/cur_class_nums.unsqueeze(-1)
-        # if epoch_index % 25 == 0:
-        #     for lora in lora_adapters:
-        #         if hasattr(lora, 'prune_parameters'):
-        #             lora.prune_parameters()
-            # if hasattr(lora, 'prune_parameters'):
-            #     lora.prune_parameters()
         return avg_loss, avg_acc
 
     def _save_best_model(self, epoch, acc, loss,optimizer):
@@ -740,7 +684,7 @@ class Learner(BaseLearner):
         
         # 确保epoch在有效范围内
         progress = min(current_epoch / total_epochs, 1.0)
-        
+        logging.info(f"schedule: {schedule}")
         if schedule == 'linear':
             # 线性衰减
             alpha = initial_alpha - (initial_alpha - final_alpha) * progress

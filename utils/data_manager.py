@@ -6,14 +6,12 @@ from torchvision import transforms
 from utils.data import iCIFAR10, iCIFAR100, iImageNet100, iImageNet1000, iCIFAR224, iImageNetR,iImageNetA,CUB, objectnet, omnibenchmark, vtab, food101, iGanFake, iCore50, iDomainNet, iOfficeHome, iSKIN, iMedMNISTv2, iCystX,iCHEST
 import io
 
-
-
-
 class DataManager(object):
     def __init__(self, dataset_name, shuffle, seed, init_cls, increment, args):
         self.args = args
         self.dataset_name = dataset_name
         self._setup_data(dataset_name, shuffle, seed)
+
         # 新增动态增量配置逻辑
         if "increment_per_session" in args:
             # 使用配置中的增量序列
@@ -22,8 +20,7 @@ class DataManager(object):
             total = sum(self._increments)
             if total != len(self._class_order):
                 raise ValueError(f"增量配置总和{total}与总类别数{len(self._class_order)}不匹配")
-        else:
-            # 保持原有固定增量逻辑
+        else:   
             assert init_cls <= len(self._class_order), "初始类别数超过总类别数"
             self._increments = [init_cls]
             while sum(self._increments) + increment < len(self._class_order):
@@ -217,27 +214,7 @@ class DummyDataset(Dataset):
         return len(self.images)
 
     def __getitem__(self, idx):
-        
-        # if self.is_3d or (
-        #     self.use_path and isinstance(self.images[idx], str)
-        #     and (self.images[idx].endswith(".nii") or self.images[idx].endswith(".nii.gz"))
-        # ):
-        #     # 1-加载 nii.gz 图像
-        #     img = nib.load(self.images[idx])
-        #     img_data = img.get_fdata()  # numpy array, (D, H, W)
 
-        #     # 2-转换为 torch 张量并添加维度 -> [1, D, H, W]
-        #     img_tensor = torch.tensor(img_data, dtype=torch.float32).unsqueeze(0)
-
-        #     # 3-调整空间大小，以便整除卷积核（16x16x8）
-        #     img_resized = self.resize_3d(img_tensor)  # [1, 64, 48, 8]
-
-        #     # 4-应用 transform（如标准化、ToTensor等）
-        #     if self.trsf is not None:
-        #         # 这里假设 trsf 支持 torch.Tensor 输入（MONAI 一般支持）
-        #         img_resized = self.trsf(img_resized)
-
-        #     return idx, img_resized, label
         label = self.labels[idx]
 
         if isinstance(self.images[idx], str) and (self.images[idx].endswith(".nii") or self.images[idx].endswith(".nii.gz")):

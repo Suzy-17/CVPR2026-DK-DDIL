@@ -44,6 +44,8 @@ def get_model(model_name, args):
         from models.dgr import Learner
     elif name == 'cllora':
         from models.cllora import Learner
+    elif name == 'gc2':
+        from models.gc2 import Learner
     elif name == 'ours':
         from models.ours import Learner
     else:

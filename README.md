@@ -1,15 +1,120 @@
-# CL-LoRA: Continual Low-Rank Adaptation for Rehearsal-Free Class-Incremental Learning
+# DK-DDIL: Adaptive Knowledge Retention for Dynamic Domain-Incremental Learning in Medical Imaging
 
-[![CVPR 2025](https://img.shields.io/badge/CVPR-2025-blue.svg)](https://cvpr.thecvf.com/)
-[![PyTorch](https://img.shields.io/badge/PyTorch-Implementation-red.svg)](https://pytorch.org/)
+[![CVPR 2026](https://img.shields.io/badge/CVPR-2026-blue.svg)](https://cvpr.thecvf.com/)
+[![arXiv](https://img.shields.io/badge/arXiv-xxxx.xxxxx-b31b1b)]()
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-This repository contains the official PyTorch implementation of **CL-LoRA: Continual Low-Rank Adaptation for Rehearsal-Free Class-Incremental Learning**, accepted at CVPR 2025.
-
-📄 **Paper**: [CL-LoRA: Continual Low-Rank Adaptation for Rehearsal-Free Class-Incremental Learning](https://openaccess.thecvf.com/content/CVPR2025/html/He_CL-LoRA_Continual_Low-Rank_Adaptation_for_Rehearsal-Free_Class-Incremental_Learning_CVPR_2025_paper.html)
+📄 **Paper**: [DK-DDIL: Adaptive Knowledge Retention for Dynamic Domain-Incremental Learning in Medical Imaging]()
 
 ## Overview
 
-CL-LoRA introduces a novel approach for class-incremental learning without rehearsal, leveraging low-rank adaptation techniques to efficiently learn new classes while preserving knowledge of previously learned tasks.
+DK-DDIL is a rehearsal-free dynamic domain-incremental learning framework designed for evolving medical imaging scenarios. Clinical imaging data continuously evolves due to new scanners, institutions, and disease subtypes. Traditional DIL methods assume:
+
+- Fixed label spaces
+- Limited domain shifts
+
+DK-DDIL enables dynamic domain adaptation without rehearsal 
+via two synergistic modules:
+
+1. 🔄**Dynamic Adaptation Module (DAM)**
+   - Dynamic rank selection
+   - Adaptive regularization
+
+2. 🧠**Knowledge Inheritance & Refinement (KIR)**
+   - Selective adapter fusion
+   - Prototype-level contrastive refinement
+
+Our method consistently outperforms SOTA DIL methods across 2D, 3D medical imaging, and natural image benchmarks.
+
+<p align="center">
+  <img src="figures/dil_mainfig.pdf" width="80%">
+</p>
+
+## Environment
+You can create a conda environment and run the following command to install the dependencies.
+```
+conda create -n DK-DDIL python=3.10 -y
+conda activate DK-DDIL
+pip install torch==2.0.1 torchvision==0.15.2 --index-url https://download.pytorch.org/whl/cu118
+pip install -r requirements.txt
+```
+
+## Datasets Preparation
+
+There are **3** datasets involved in the paper, *Skin Pathology Diagnosis*, *Cyst-X*and *Office-Home* respectively. Follow the two-step guideline to prepare them for the reproduction.
+
+### 1. Download datasets ###
+Download the datasets mannually according the recommended.
+    - **Skin Pathology Diagnosis**: Please download the data for each center using the links provided below.
+      - *PH2*: [link](https://huggingface.co/datasets/Shah1st/PH2).
+      - *BCN*:[link](https://figshare.com/articles/journal_contribution/BCN20000_Dermoscopic_Lesions_in_the_Wild/24140028/1).
+      - *HAM、MSK、OTHER*:[link](https://challenge.isic-archive.com/data/#2019).
+      - *derm_D7P*:[link](https://derm.cs.sfu.ca/Download.html)
+      - *dermoscopic*:[link](https://api.isic-archive.com/doi/milk10k/)
+    - **Cyst-X**: You can access the dataset at this [link](https://osf.io/74vfs/overview). Please download `IPMN_Classification/t1_clean_ROI.zip` and `IPMN_labels_t1_total.csv` file.
+    - **Office-Home**: You can access the dataset at this [link](https://hemanthdv.github.io/officehome-dataset/).
+
+### 2. Data Preprocessing ###
+We first organize the datasets into domains and corresponding classes for each domain as follows:
+    - **Skin Pathology Diagnosis**: 
+      - ***PH2***:Based on the image data and descriptions stored in the Parquet files, images are categorized into two lesion types: NV and MEL.
+      - ***BCN***:Images are grouped according to the "diagnosis" field in the provided CSV file.
+      - ***HAM、MSK***:From the ISIC 2019 Challenge training set, samples from the HAM, MSK, and BCN centers are selected according to the "lesion_id" field in meta.csv. 
+      Samples whose "lesion_id" is neither NaN nor associated with HAM/MSK/BCN are merged into the MSK domain. 
+      The HAM and MSK samples are then categorized based on the labels provided in GroundTruth.csv.
+      - ***OTHER***:The ISIC 2019 test set is treated as a separate domain named OTHER.
+      - ***derm_D7P***:The "diagnosis" field in meta.csv is first mapped to our predefined skin lesion categories. Samples corresponding to the "derm" column are then organized according to these mapped labels.
+      - ***dermoscopic***:Samples are selected based on the "image_type" field in meta.csv to construct the dermoscopic domain. These samples are categorized according to their labels in gt.csv.
+    - **Cyst-X**: In IPMN_labels_t1_total.csv, the "Patient ID" field corresponds to the filename of each sample. Based on the filename prefix, samples are grouped into different centers (e.g., AHN, MCF). The "risk assessment" field is used as the class label for categorization.
+    - **Office-Home**: The original dataset contains four different artistic styles, which naturally correspond to four domains. The existing folder structure already matches our required dataset organization.
+    **Dataset Splitting**: For each domain, we adopt stratified sampling to partition the dataset into training and testing subsets with a ratio of 4:1, preserving the class distribution within each domain.
+
+<!-- 整理数据集的domains以及每个domain的classes：
+    - **Skin Pathology Diagnosis**: 
+      - *PH2*:根据Parquet文件中存储的图像和description，将图像分为NV和MEL两种病变类别；
+      - *BCN*:根据csv文件的"diagnosis"字段将图像分类存放；
+      - *HAM、MSK*:在ISIC 2019 Challenge的训练集中，根据meta.csv中的"lession_id"字段筛选出HAM、MSK、BCN三个中心的样本，对于"lession_id"字段既不是nan，也不属于MSK/BCN/HAM的样本，合并到MSK中心，而后按照GroundTruth.csv中的字段将HAM、MSK的样本分类存放。
+      - *OTHER*:将ISIC 2019的测试集作为OTHER中心的样本。
+      - *derm_D7P*:首先将meta.csv中的"diagnosis"字段转化为我们设定的皮肤病变标签，而后将"derm"列对应的样本分类存放。
+      - *dermoscopic*:根据meta.csv中的"image_type"字段筛选出dermoscopic中心的样本，而后将这些样本按照gt.csv中对应的标签分类存放。
+    - **Cyst-X**: IPMN_labels_t1_total.csv中的"Patient ID"字段对应每个样本的文件名，根据其文件名前缀，将样本分为AHN、MCF等中心，而后将"risk assessment"字段作为标签，将样本分类存放。
+    - **Office-Home**: 原数据集文件夹下有四种不同风格，即四个不同的domain，已经符合我们的数据集结构。
+    **Dataset Splitting**: 对每个domain，按照分层抽样的方式，将数据集划分为训练集和测试集，训练集:测试集=4:1。 -->
+
+### 3. Check structure ###
+Check if the dataset has been downloaded properly and place the dataset files in the `./data/` directory. The dataset directory is expected to have the following structure:
+    ```
+    Skin
+    ├── BCN
+      ├── class0
+        ├── images
+      ├── class1
+      ├── ...(other classes)
+    ├── BCN_test.txt
+    ├── BCN_train.txt
+    ├── ...(other domains)
+
+    Cyst-X
+    ├── AHN
+      ├── class0
+        ├── images
+      ├── class1
+      ├── ...(other classes)
+    ├── AHN_test.txt
+    ├── AHN_train.txt
+    ├── ...(other domains)
+
+    OfficeHome
+    ├── Art
+      ├── class0
+        ├── images
+      ├── class1
+      ├── ...(other classes)    
+    ├── Art_test.txt
+    ├── Art_train.txt
+    ├── ...(other domains)
+    ```
+
 
 ## Getting Started
 
@@ -18,78 +123,48 @@ CL-LoRA introduces a novel approach for class-incremental learning without rehea
 To train the model, navigate to the main directory and run:
 
 ```
-python main.py <json_config_path>
+python main.py --config <json_config_path>
 ```
 
 ### Supported Datasets
 
 The following datasets are supported with pre-configured JSON files:
 
-#### CIFAR-100
+#### Skin Pathology Diagnosis
 ```
-python main.py ./exps/cifar.json
+python main.py --config exps/skin.json
 ```
-
-#### ImageNet-R
+#### Cyst-X
 ```
-python main.py ./exps/inr.json
+python main.py --config exps/cystx.json
 ```
-
-#### ImageNet-A
+#### Office-Home
 ```
-python main.py ./exps/ina.json
+python main.py --config exps/officehome.json
 ```
 
-#### VTAB
-```
-python main.py ./exps/vtab.json
-```
-
-### Configuration
-
-The JSON configuration files contain experiment setup and hyperparameters. Key CL-LoRA specific parameters include:
-
-- **`general_pos`**: Position indices for task-shared LoRA adapters
-- **`specific_pos`**: Position indices for task-specific LoRA adapters  
-- **`msa`**: Multi-Head Self-Attention adaptation settings for Query (Q), Key (K), and Value (V)
-  - `1`: Apply adaptation
-  - `0`: No adaptation
-
-### Example Configuration
-
-```json
-{
-  "msa": [1, 0, 1],
-  "general_pos": [0, 1, 2, 3, 4, 5],
-  "specific_pos": [6, 7, 8, 9, 10, 11]
-}
-```
-
-This configuration:
-- Adapts Q and V in Multi-Head Self-Attention (`msa`: [1, 0, 1])
-- Uses task-shared LoRA in the first 6 ViT blocks (`general_pos`)
-- Uses task-specific LoRA in the last 6 ViT blocks (`specific_pos`)
 
 ## Citation
 
 If you find this work useful in your research, please cite:
 
 ```bibtex
-@article{He_2025_CVPR,
-    author    = {He, Jiangpeng and Duan, Zhihao and Zhu, Fengqing},
-    title     = {CL-LoRA: Continual Low-Rank Adaptation for Rehearsal-Free Class-Incremental Learning},
+@article{yxma_2026_CVPR,
+    author    = {},
+    title     = {DK-DDIL: Adaptive Knowledge Retention for Dynamic Domain-Incremental Learning in Medical Imaging},
     journal = {Proceedings of the Computer Vision and Pattern Recognition Conference (CVPR)},
     month     = {June},
-    year      = {2025},
-    pages     = {30534-30544}
+    year      = {2026},
+    pages     = {}
 }
 ```
 
 ## Acknowledgments
 
-This implementation builds upon the **LAMDA-PILOT** framework. 
+This implementation builds upon the **LAMDA-PILOT** and **CL-LoRA** framework. 
 
 **LAMDA-PILOT Repository**: https://github.com/sun-hailong/LAMDA-PILOT
+**CL-LoRA Repository**: https://github.com/JiangpengHe/CL-LoRA
 
 ## License
 

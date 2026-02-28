@@ -235,19 +235,6 @@ class iDomainNet(iData):
         logging.info("Learning sequence of domains: {}".format(self.domain_names))
 
     def download_data(self):
-        # from datasets import load_dataset
-
-        # # 加载数据集
-        # dataset = load_dataset("/Ds/xmu/mayuxi/CL/data/DomainNet")
-        
-        # train_dataset = dataset['train']
-        # test_dataset = dataset['test']
-        # self.train_data, self.train_targets = train_dataset.data, np.array(
-        #     train_dataset.targets
-        # )
-        # self.test_data, self.test_targets = test_dataset.data, np.array(
-        #     test_dataset.targets
-        # )
         def _read_data(image_list_paths) -> (np.ndarray, np.ndarray):
             imgs = []
             for taskid, image_list_path in enumerate(image_list_paths):
@@ -269,10 +256,6 @@ class iDomainNet(iData):
             # class_counter = defaultdict(int)  # 新增类别计数器 debug使用
             img_x, img_y = [], []
             for item in imgs:
-                # current_class = item[1]
-                # if class_counter[current_class] >= 10:  # 达到上限跳过
-                #     continue
-                # class_counter[current_class] += 1  # 增加类别计数
                 img_x.append(os.path.join(self.image_list_root, item[0]))
                 img_y.append(item[1])
 
@@ -384,7 +367,6 @@ class iSKIN(iData):
         if len(self.cl_n_inc) != self.nb_sessions:
             raise ValueError(f"increment_per_session长度({len(self.cl_n_inc)})与total_sessions({self.nb_sessions})不匹配")
         
-        
         if "task_name" in args and args["task_name"] is not None:
             self.domain_names = args["task_name"]
         else:
@@ -394,19 +376,6 @@ class iSKIN(iData):
         logging.info("Learning sequence of domains: {}".format(self.domain_names))
 
     def download_data(self):
-        # from datasets import load_dataset
-
-        # # 加载数据集
-        # dataset = load_dataset("/Ds/xmu/mayuxi/CL/data/DomainNet")
-        
-        # train_dataset = dataset['train']
-        # test_dataset = dataset['test']
-        # self.train_data, self.train_targets = train_dataset.data, np.array(
-        #     train_dataset.targets
-        # )
-        # self.test_data, self.test_targets = test_dataset.data, np.array(
-        #     test_dataset.targets
-        # )
         def _read_data(image_list_paths) -> (np.ndarray, np.ndarray):
             imgs = []
             cumulative_inc = 0  # 维护累计增量
@@ -419,14 +388,7 @@ class iSKIN(iData):
                 # 重写 target class := original value + taskid * args["increment"]
                 for entry in image_list:
                     img_label = int(entry.split()[1])
-                    # if self.class_incremental:
-                    #     if img_label < taskid * self.cl_n_inc or img_label >= (taskid + 1) * self.cl_n_inc:
-                    #         continue
-                    # elif img_label > self.cl_n_inc:
-                    #     raise ValueError("class_incremental is False, but img_label > cl_n_inc")
-                    # else:  # correct the label for DIL tasks
-                    #     img_label = img_label + taskid * self.cl_n_inc
-                    # imgs.append((entry.split()[0], img_label))
+
                     # 类增量模式筛选
                     if self.class_incremental:
                         # 只保留当前增量区间内的样本
@@ -484,7 +446,6 @@ class iCHEST(iData):
         if len(self.cl_n_inc) != self.nb_sessions:
             raise ValueError(f"increment_per_session长度({len(self.cl_n_inc)})与total_sessions({self.nb_sessions})不匹配")
         
-        
         if "task_name" in args and args["task_name"] is not None:
             self.domain_names = args["task_name"]
         else:
@@ -494,19 +455,6 @@ class iCHEST(iData):
         logging.info("Learning sequence of domains: {}".format(self.domain_names))
 
     def download_data(self):
-        # from datasets import load_dataset
-
-        # # 加载数据集
-        # dataset = load_dataset("/Ds/xmu/mayuxi/CL/data/DomainNet")
-        
-        # train_dataset = dataset['train']
-        # test_dataset = dataset['test']
-        # self.train_data, self.train_targets = train_dataset.data, np.array(
-        #     train_dataset.targets
-        # )
-        # self.test_data, self.test_targets = test_dataset.data, np.array(
-        #     test_dataset.targets
-        # )
         def _read_data(image_list_paths) -> (np.ndarray, np.ndarray):
             imgs = []
             cumulative_inc = 0  # 维护累计增量
@@ -516,17 +464,9 @@ class iCHEST(iData):
                 current_inc = self.cl_n_inc[taskid]  # 当前session的增量
                 with open(image_list_path) as f:
                     image_list = f.readlines()
-                # 重写 target class := original value + taskid * args["increment"]
                 for entry in image_list:
                     img_label = int(entry.split("--")[1])
-                    # if self.class_incremental:
-                    #     if img_label < taskid * self.cl_n_inc or img_label >= (taskid + 1) * self.cl_n_inc:
-                    #         continue
-                    # elif img_label > self.cl_n_inc:
-                    #     raise ValueError("class_incremental is False, but img_label > cl_n_inc")
-                    # else:  # correct the label for DIL tasks
-                    #     img_label = img_label + taskid * self.cl_n_inc
-                    # imgs.append((entry.split()[0], img_label))
+
                     # 类增量模式筛选
                     if self.class_incremental:
                         # 只保留当前增量区间内的样本
@@ -994,9 +934,6 @@ class iCystX(iData):
         EnsureChannelFirst(),                   # [D,H,W] → [1,D,H,W]
         ScaleIntensity(),                       # 灰度归一化到 [0, 1]
         Resize((112, 56, 32)),                    # 统一尺寸
-        # RandFlip(spatial_axis=0, prob=0.5),     # z轴翻转
-        # RandFlip(spatial_axis=1, prob=0.5),     # y轴翻转
-        # RandFlip(spatial_axis=2, prob=0.5),     # x轴翻转
         EnsureType(),                           # 保证为 torch.Tensor
     ]
     # 测试/验证时的变换
@@ -1022,7 +959,6 @@ class iCystX(iData):
         # 校验增量配置长度
         if len(self.cl_n_inc) != self.nb_sessions:
             raise ValueError(f"increment_per_session长度({len(self.cl_n_inc)})与total_sessions({self.nb_sessions})不匹配")
-        
         
         if "task_name" in args and args["task_name"] is not None:
             self.domain_names = args["task_name"]
