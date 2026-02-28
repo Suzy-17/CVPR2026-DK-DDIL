@@ -27,7 +27,7 @@ via two synergistic modules:
 Our method consistently outperforms SOTA DIL methods across 2D, 3D medical imaging, and natural image benchmarks.
 
 <p align="center">
-  <img src="figures/dil_mainfig.pdf" width="80%">
+  <img src="figures/dil_mainfig.jpg" width="80%">
 </p>
 
 ## Environment
@@ -45,29 +45,29 @@ There are **3** datasets involved in the paper, *Skin Pathology Diagnosis*, *Cys
 
 ### 1. Download datasets ###
 Download the datasets mannually according the recommended.
-    - **Skin Pathology Diagnosis**: Please download the data for each center using the links provided below.
-      - *PH2*: [link](https://huggingface.co/datasets/Shah1st/PH2).
-      - *BCN*:[link](https://figshare.com/articles/journal_contribution/BCN20000_Dermoscopic_Lesions_in_the_Wild/24140028/1).
-      - *HAM、MSK、OTHER*:[link](https://challenge.isic-archive.com/data/#2019).
-      - *derm_D7P*:[link](https://derm.cs.sfu.ca/Download.html)
-      - *dermoscopic*:[link](https://api.isic-archive.com/doi/milk10k/)
-    - **Cyst-X**: You can access the dataset at this [link](https://osf.io/74vfs/overview). Please download `IPMN_Classification/t1_clean_ROI.zip` and `IPMN_labels_t1_total.csv` file.
-    - **Office-Home**: You can access the dataset at this [link](https://hemanthdv.github.io/officehome-dataset/).
+    - **Skin Pathology Diagnosis**: Please download the data for each center using the links provided below.  
+      - *PH2*: [link](https://huggingface.co/datasets/Shah1st/PH2).  
+      - *BCN*:[link](https://figshare.com/articles/journal_contribution/BCN20000_Dermoscopic_Lesions_in_the_Wild/24140028/1).  
+      - *HAM、MSK、OTHER*:[link](https://challenge.isic-archive.com/data/#2019).  
+      - *derm_D7P*:[link](https://derm.cs.sfu.ca/Download.html)  
+      - *dermoscopic*:[link](https://api.isic-archive.com/doi/milk10k/)  
+    - **Cyst-X**: You can access the dataset at this [link](https://osf.io/74vfs/overview). Please download `IPMN_Classification/t1_clean_ROI.zip` and `IPMN_labels_t1_total.csv` file.  
+    - **Office-Home**: You can access the dataset at this [link](https://hemanthdv.github.io/officehome-dataset/).  
 
 ### 2. Data Preprocessing ###
-We first organize the datasets into domains and corresponding classes for each domain as follows:
-    - **Skin Pathology Diagnosis**: 
-      - ***PH2***:Based on the image data and descriptions stored in the Parquet files, images are categorized into two lesion types: NV and MEL.
-      - ***BCN***:Images are grouped according to the "diagnosis" field in the provided CSV file.
+We first organize the datasets into domains and corresponding classes for each domain as follows:  
+    - **Skin Pathology Diagnosis**:   
+      - ***PH2***:Based on the image data and descriptions stored in the Parquet files, images are categorized into two lesion types: NV and MEL.  
+      - ***BCN***:Images are grouped according to the "diagnosis" field in the provided CSV file.  
       - ***HAM、MSK***:From the ISIC 2019 Challenge training set, samples from the HAM, MSK, and BCN centers are selected according to the "lesion_id" field in meta.csv. 
       Samples whose "lesion_id" is neither NaN nor associated with HAM/MSK/BCN are merged into the MSK domain. 
       The HAM and MSK samples are then categorized based on the labels provided in GroundTruth.csv.
-      - ***OTHER***:The ISIC 2019 test set is treated as a separate domain named OTHER.
-      - ***derm_D7P***:The "diagnosis" field in meta.csv is first mapped to our predefined skin lesion categories. Samples corresponding to the "derm" column are then organized according to these mapped labels.
-      - ***dermoscopic***:Samples are selected based on the "image_type" field in meta.csv to construct the dermoscopic domain. These samples are categorized according to their labels in gt.csv.
-    - **Cyst-X**: In IPMN_labels_t1_total.csv, the "Patient ID" field corresponds to the filename of each sample. Based on the filename prefix, samples are grouped into different centers (e.g., AHN, MCF). The "risk assessment" field is used as the class label for categorization.
-    - **Office-Home**: The original dataset contains four different artistic styles, which naturally correspond to four domains. The existing folder structure already matches our required dataset organization.
-    **Dataset Splitting**: For each domain, we adopt stratified sampling to partition the dataset into training and testing subsets with a ratio of 4:1, preserving the class distribution within each domain.
+      - ***OTHER***:The ISIC 2019 test set is treated as a separate domain named OTHER.  
+      - ***derm_D7P***:The "diagnosis" field in meta.csv is first mapped to our predefined skin lesion categories. Samples corresponding to the "derm" column are then organized according to these mapped labels.  
+      - ***dermoscopic***:Samples are selected based on the "image_type" field in meta.csv to construct the dermoscopic domain. These samples are categorized according to their labels in gt.csv.  
+    - **Cyst-X**: In IPMN_labels_t1_total.csv, the "Patient ID" field corresponds to the filename of each sample. Based on the filename prefix, samples are grouped into different centers (e.g., AHN, MCF). The "risk assessment" field is used as the class label for categorization.  
+    - **Office-Home**: The original dataset contains four different artistic styles, which naturally correspond to four domains. The existing folder structure already matches our required dataset organization.  
+    **Dataset Splitting**: For each domain, we adopt stratified sampling to partition the dataset into training and testing subsets with a ratio of 4:1, preserving the class distribution within each domain.  
 
 <!-- 整理数据集的domains以及每个domain的classes：
     - **Skin Pathology Diagnosis**: 
@@ -82,8 +82,8 @@ We first organize the datasets into domains and corresponding classes for each d
     **Dataset Splitting**: 对每个domain，按照分层抽样的方式，将数据集划分为训练集和测试集，训练集:测试集=4:1。 -->
 
 ### 3. Check structure ###
-Check if the dataset has been downloaded properly and place the dataset files in the `./data/` directory. The dataset directory is expected to have the following structure:
-    ```
+Check if the dataset has been downloaded properly and place the dataset files in the `./data/` directory. The dataset directory is expected to have the following structure:  
+```
     Skin
     ├── BCN
       ├── class0
@@ -113,7 +113,7 @@ Check if the dataset has been downloaded properly and place the dataset files in
     ├── Art_test.txt
     ├── Art_train.txt
     ├── ...(other domains)
-    ```
+```  
 
 
 ## Getting Started
