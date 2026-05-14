@@ -3,7 +3,10 @@
 [![CVPR 2026](https://img.shields.io/badge/CVPR-2026-blue.svg)](https://cvpr.thecvf.com/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-📄 **Paper**: [DK-DDIL: Adaptive Knowledge Retention for Dynamic Domain-Incremental Learning in Medical Imaging](./main-paper.pdf)
+📄 **Paper**: [DK-DDIL: Adaptive Knowledge Retention for Dynamic Domain-Incremental Learning in Medical Imaging](https://raw.githubusercontent.com/Suzy-17/CVPR2026-DK-DDIL/main/paper/main-paper.pdf)
+
+📄 **Paper**: [DK-DDIL: Adaptive Knowledge Retention for Dynamic Domain-Incremental Learning in Medical Imaging](https://github.com/Suzy-17/CVPR2026-DK-DDIL/blob/main/paper/main-paper.pdf)
+
 
 ## Overview
 
@@ -26,7 +29,7 @@ via two synergistic modules:
 Our method consistently outperforms SOTA DIL methods across 2D, 3D medical imaging, and natural image benchmarks.
 
 <p align="center">
-  <img src="figures/dil_mainfig.jpg" width="80%">
+  <img src="./paper/dil_mainfig.jpg" width="80%">
 </p>
 
 ## Environment
