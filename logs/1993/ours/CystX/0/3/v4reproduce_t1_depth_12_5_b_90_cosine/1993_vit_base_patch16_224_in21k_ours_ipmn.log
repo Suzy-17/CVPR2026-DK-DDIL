@@ -1,0 +1,848 @@
+2025-10-23 20:40:12,713 [trainer.py] => config: ./exps/cystx.json
+2025-10-23 20:40:12,713 [trainer.py] => prefix: v4reproduce_t1_depth_12_5_b_90_cosine
+2025-10-23 20:40:12,713 [trainer.py] => dataset: CystX
+2025-10-23 20:40:12,713 [trainer.py] => task_name: ['NU', 'MCF', 'NYU', 'AHN', 'MCA', 'IU', 'EMC']
+2025-10-23 20:40:12,713 [trainer.py] => increment_per_session: [3, 3, 3, 3, 3, 3, 3]
+2025-10-23 20:40:12,713 [trainer.py] => data_path: ./data/Cyst-X/
+2025-10-23 20:40:12,713 [trainer.py] => memory_size: 0
+2025-10-23 20:40:12,713 [trainer.py] => memory_per_class: 0
+2025-10-23 20:40:12,713 [trainer.py] => fixed_memory: True
+2025-10-23 20:40:12,713 [trainer.py] => shuffle: False
+2025-10-23 20:40:12,713 [trainer.py] => init_cls: 3
+2025-10-23 20:40:12,713 [trainer.py] => increment: 3
+2025-10-23 20:40:12,713 [trainer.py] => total_sessions: 7
+2025-10-23 20:40:12,713 [trainer.py] => model_name: ours
+2025-10-23 20:40:12,713 [trainer.py] => backbone_type: vit_base_patch16_224_in21k_ours_ipmn
+2025-10-23 20:40:12,713 [trainer.py] => device: [device(type='cuda', index=0)]
+2025-10-23 20:40:12,713 [trainer.py] => seed: 1993
+2025-10-23 20:40:12,713 [trainer.py] => init_epochs: 20
+2025-10-23 20:40:12,713 [trainer.py] => init_lr: 0.03
+2025-10-23 20:40:12,713 [trainer.py] => later_epochs: 20
+2025-10-23 20:40:12,713 [trainer.py] => later_lr: 0.03
+2025-10-23 20:40:12,713 [trainer.py] => pretrain_epochs: 5
+2025-10-23 20:40:12,713 [trainer.py] => batch_size: 64
+2025-10-23 20:40:12,713 [trainer.py] => weight_decay: 0.0001
+2025-10-23 20:40:12,713 [trainer.py] => min_lr: 0
+2025-10-23 20:40:12,713 [trainer.py] => margin: 0.3
+2025-10-23 20:40:12,713 [trainer.py] => alpha_loss: 1.0
+2025-10-23 20:40:12,713 [trainer.py] => beta_loss: 1.0
+2025-10-23 20:40:12,713 [trainer.py] => gamma: 1.0
+2025-10-23 20:40:12,713 [trainer.py] => cross_domain_weight: 0.0
+2025-10-23 20:40:12,713 [trainer.py] => lora_orth_weight: 0.0001
+2025-10-23 20:40:12,713 [trainer.py] => curriculum_learning: True
+2025-10-23 20:40:12,713 [trainer.py] => adaptive_temp: True
+2025-10-23 20:40:12,713 [trainer.py] => smooth_loss: False
+2025-10-23 20:40:12,713 [trainer.py] => temperature: 0.1
+2025-10-23 20:40:12,713 [trainer.py] => optimizer: adamw
+2025-10-23 20:40:12,713 [trainer.py] => scheduler: cosine
+2025-10-23 20:40:12,714 [trainer.py] => pretrained: True
+2025-10-23 20:40:12,714 [trainer.py] => vpt_type: Deep
+2025-10-23 20:40:12,714 [trainer.py] => prompt_token_num: 5
+2025-10-23 20:40:12,714 [trainer.py] => ffn_num: 64
+2025-10-23 20:40:12,714 [trainer.py] => min_rank: 4
+2025-10-23 20:40:12,714 [trainer.py] => adaptive_rank: True
+2025-10-23 20:40:12,714 [trainer.py] => rank_threshold: 0.01
+2025-10-23 20:40:12,714 [trainer.py] => adaptation_rate: 0.1
+2025-10-23 20:40:12,714 [trainer.py] => use_diagonal: False
+2025-10-23 20:40:12,714 [trainer.py] => recalc_sim: True
+2025-10-23 20:40:12,714 [trainer.py] => alpha: 0.0
+2025-10-23 20:40:12,714 [trainer.py] => use_init_ptm: False
+2025-10-23 20:40:12,714 [trainer.py] => beta: 0
+2025-10-23 20:40:12,714 [trainer.py] => use_old_data: False
+2025-10-23 20:40:12,714 [trainer.py] => use_reweight: True
+2025-10-23 20:40:12,714 [trainer.py] => moni_adam: False
+2025-10-23 20:40:12,714 [trainer.py] => adapter_num: -1
+2025-10-23 20:40:12,714 [trainer.py] => msa_adapt: True
+2025-10-23 20:40:12,714 [trainer.py] => use_distillation: True
+2025-10-23 20:40:12,714 [trainer.py] => use_block_weight: True
+2025-10-23 20:40:12,714 [trainer.py] => msa: [1, 1, 1, 1, 0, 0]
+2025-10-23 20:40:12,714 [trainer.py] => general_pos: []
+2025-10-23 20:40:12,714 [trainer.py] => specfic_pos: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+2025-10-23 20:40:12,714 [trainer.py] => logs_name: logs/1993/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine
+2025-10-23 20:40:12,714 [data.py] => Learning sequence of domains: ['NU', 'MCF', 'NYU', 'AHN', 'MCA', 'IU', 'EMC']
+2025-10-23 20:40:12,715 [data_manager.py] => [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+2025-10-23 20:40:14,656 [_builder.py] => Loading pretrained weights from Hugging Face hub (timm/vit_base_patch16_224.augreg_in21k)
+2025-10-23 20:40:15,730 [_hub.py] => [timm/vit_base_patch16_224.augreg_in21k] Safe alternative available for 'pytorch_model.bin' (as 'model.safetensors'). Loading weights using safetensors.
+2025-10-23 20:40:15,792 [trainer.py] => All params: 90867504
+2025-10-23 20:40:15,792 [trainer.py] => Trainable params: 5659440
+2025-10-23 20:40:15,797 [ours.py] => Learning on 0-3
+2025-10-23 20:40:18,814 [ours.py] => Task 0, Epoch 1/20 => Train_Loss 3.345, Train_Acc 46.26%, Val_Loss 3.345, Val_Acc 46.26%, Best_Acc 0.00%, LR 2.98e-02
+2025-10-23 20:40:20,491 [ours.py] => Task 0, Epoch 2/20 => Train_Loss 3.083, Train_Acc 68.03%, Val_Loss 3.083, Val_Acc 68.03%, Best_Acc 0.00%, LR 2.93e-02
+2025-10-23 20:40:22,170 [ours.py] => Task 0, Epoch 3/20 => Train_Loss 2.963, Train_Acc 68.03%, Val_Loss 2.963, Val_Acc 68.03%, Best_Acc 0.00%, LR 2.84e-02
+2025-10-23 20:40:23,904 [ours.py] => Task 0, Epoch 4/20 => Train_Loss 2.951, Train_Acc 68.03%, Val_Loss 2.951, Val_Acc 68.03%, Best_Acc 0.00%, LR 2.71e-02
+2025-10-23 20:40:26,098 [ours.py] => Task 0, Epoch 5/20 => Train_Loss 2.763, Train_Acc 68.03%, Val_Loss 2.763, Val_Acc 68.03%, Best_Acc 0.00%, LR 2.56e-02
+2025-10-23 20:40:28,051 [ours.py] => Task 0, Epoch 6/20 => Train_Loss 2.722, Train_Acc 68.03%, Val_Loss 2.722, Val_Acc 68.03%, Best_Acc 0.00%, LR 2.38e-02
+2025-10-23 20:40:29,829 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_0.pth
+2025-10-23 20:40:30,036 [ours.py] => Task 0, Epoch 7/20 => Train_Loss 2.781, Train_Acc 68.03%, Val_Loss 2.781, Val_Acc 68.03%, Best_Acc 68.03%, LR 2.18e-02
+2025-10-23 20:40:31,713 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_0.pth
+2025-10-23 20:40:32,073 [ours.py] => Task 0, Epoch 8/20 => Train_Loss 2.668, Train_Acc 68.03%, Val_Loss 2.668, Val_Acc 68.03%, Best_Acc 68.03%, LR 1.96e-02
+2025-10-23 20:40:33,860 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_0.pth
+2025-10-23 20:40:34,164 [ours.py] => Task 0, Epoch 9/20 => Train_Loss 2.590, Train_Acc 68.03%, Val_Loss 2.590, Val_Acc 68.03%, Best_Acc 68.03%, LR 1.73e-02
+2025-10-23 20:40:36,177 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_0.pth
+2025-10-23 20:40:36,538 [ours.py] => Task 0, Epoch 10/20 => Train_Loss 2.472, Train_Acc 68.03%, Val_Loss 2.472, Val_Acc 68.03%, Best_Acc 68.03%, LR 1.50e-02
+2025-10-23 20:40:38,238 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_0.pth
+2025-10-23 20:40:38,545 [ours.py] => Task 0, Epoch 11/20 => Train_Loss 2.426, Train_Acc 68.03%, Val_Loss 2.426, Val_Acc 68.03%, Best_Acc 68.03%, LR 1.27e-02
+2025-10-23 20:40:40,237 [ours.py] => Task 0, Epoch 12/20 => Train_Loss 2.462, Train_Acc 68.03%, Val_Loss 2.462, Val_Acc 68.03%, Best_Acc 68.03%, LR 1.04e-02
+2025-10-23 20:40:41,916 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_0.pth
+2025-10-23 20:40:42,222 [ours.py] => Task 0, Epoch 13/20 => Train_Loss 2.364, Train_Acc 68.03%, Val_Loss 2.364, Val_Acc 68.03%, Best_Acc 68.03%, LR 8.19e-03
+2025-10-23 20:40:44,686 [ours.py] => Task 0, Epoch 14/20 => Train_Loss 2.364, Train_Acc 68.03%, Val_Loss 2.364, Val_Acc 68.03%, Best_Acc 68.03%, LR 6.18e-03
+2025-10-23 20:40:46,402 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_0.pth
+2025-10-23 20:40:46,763 [ours.py] => Task 0, Epoch 15/20 => Train_Loss 2.339, Train_Acc 68.03%, Val_Loss 2.339, Val_Acc 68.03%, Best_Acc 68.03%, LR 4.39e-03
+2025-10-23 20:40:48,548 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_0.pth
+2025-10-23 20:40:48,913 [ours.py] => Task 0, Epoch 16/20 => Train_Loss 2.304, Train_Acc 68.03%, Val_Loss 2.304, Val_Acc 68.03%, Best_Acc 68.03%, LR 2.86e-03
+2025-10-23 20:40:50,580 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_0.pth
+2025-10-23 20:40:50,946 [ours.py] => Task 0, Epoch 17/20 => Train_Loss 2.280, Train_Acc 68.03%, Val_Loss 2.280, Val_Acc 68.03%, Best_Acc 68.03%, LR 1.63e-03
+2025-10-23 20:40:53,569 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_0.pth
+2025-10-23 20:40:53,934 [ours.py] => Task 0, Epoch 18/20 => Train_Loss 2.266, Train_Acc 68.03%, Val_Loss 2.266, Val_Acc 68.03%, Best_Acc 68.03%, LR 7.34e-04
+2025-10-23 20:40:55,685 [ours.py] => Task 0, Epoch 19/20 => Train_Loss 2.310, Train_Acc 68.03%, Val_Loss 2.310, Val_Acc 68.03%, Best_Acc 68.03%, LR 1.85e-04
+2025-10-23 20:40:57,338 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_0.pth
+2025-10-23 20:40:57,652 [ours.py] => Task 0, Epoch 20/20 => Train_Loss 2.247, Train_Acc 68.03%, Val_Loss 2.247, Val_Acc 68.03%, Best_Acc 68.03%, LR 0.00e+00
+2025-10-23 20:40:57,791 [ours.py] => Loaded best model from epoch 19
+2025-10-23 20:40:57,792 [ours.py] => LoRA 0: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:40:57,793 [ours.py] => LoRA 1: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:40:57,793 [ours.py] => LoRA 2: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:40:57,794 [ours.py] => LoRA 3: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:40:57,794 [ours.py] => LoRA 4: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:40:57,795 [ours.py] => LoRA 5: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:40:57,795 [ours.py] => LoRA 6: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:40:57,796 [ours.py] => LoRA 7: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:40:57,796 [ours.py] => LoRA 8: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:40:57,797 [ours.py] => LoRA 9: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:40:57,797 [ours.py] => LoRA 10: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:40:57,798 [ours.py] => LoRA 11: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:40:57,798 [ours.py] => LoRA 12: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:40:57,799 [ours.py] => LoRA 13: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:40:57,799 [ours.py] => LoRA 14: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:40:57,800 [ours.py] => LoRA 15: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:40:57,800 [ours.py] => LoRA 16: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:40:57,801 [ours.py] => LoRA 17: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:40:57,801 [ours.py] => LoRA 18: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:40:57,802 [ours.py] => LoRA 19: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:40:57,802 [ours.py] => LoRA 20: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:40:57,803 [ours.py] => LoRA 21: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:40:57,803 [ours.py] => LoRA 22: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:40:57,804 [ours.py] => LoRA 23: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:40:57,804 [ours.py] => LoRA 24: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:40:57,805 [ours.py] => LoRA 25: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:40:57,805 [ours.py] => LoRA 26: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:40:57,806 [ours.py] => LoRA 27: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:40:57,806 [ours.py] => LoRA 28: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:40:57,807 [ours.py] => LoRA 29: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:40:57,807 [ours.py] => LoRA 30: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:40:57,808 [ours.py] => LoRA 31: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:40:57,808 [ours.py] => LoRA 32: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:40:57,809 [ours.py] => LoRA 33: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:40:57,809 [ours.py] => LoRA 34: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:40:57,810 [ours.py] => LoRA 35: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:40:57,810 [ours.py] => LoRA 36: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:40:57,811 [ours.py] => LoRA 37: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:40:57,811 [ours.py] => LoRA 38: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:40:57,812 [ours.py] => LoRA 39: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:40:57,812 [ours.py] => LoRA 40: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:40:57,813 [ours.py] => LoRA 41: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:40:57,814 [ours.py] => LoRA 42: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:40:57,814 [ours.py] => LoRA 43: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:40:57,815 [ours.py] => LoRA 44: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:40:57,815 [ours.py] => LoRA 45: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:40:57,816 [ours.py] => LoRA 46: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:40:57,816 [ours.py] => LoRA 47: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:40:57,816 [ours.py] => Overall LoRA Compression: 0.062 (294912/4718592 parameters)
+2025-10-23 20:40:59,591 [ours.py] => Task correct: 100.0
+2025-10-23 20:40:59,592 [ours.py] => Task acc: 53.84615384615385
+2025-10-23 20:41:00,756 [trainer.py] => No NME accuracy.
+2025-10-23 20:41:00,757 [trainer.py] => CNN: {'total': 53.85, 'task1_0-2': 53.85, 'old': 0, 'new': 53.85, 'new_to_old_err': 0.0, 'per_class': {'0': {'precision': 0.75, 'recall': 0.3333333333333333, 'f1-score': 0.46153846153846156, 'support': 9.0}, '1': {'precision': 0.68, 'recall': 0.6538461538461539, 'f1-score': 0.6666666666666666, 'support': 26.0}, '2': {'precision': 0.1, 'recall': 0.25, 'f1-score': 0.14285714285714285, 'support': 4.0}, 'accuracy': 0.5384615384615384, 'macro avg': {'precision': 0.5100000000000001, 'recall': 0.4123931623931624, 'f1-score': 0.4236874236874237, 'support': 39.0}, 'weighted avg': {'precision': 0.6366666666666666, 'recall': 0.5384615384615384, 'f1-score': 0.5656053348361041, 'support': 39.0}}, 'confusion_matrix': array([[ 3,  5,  1],
+       [ 1, 17,  8],
+       [ 0,  3,  1]])}
+2025-10-23 20:41:00,757 [trainer.py] => CNN grouped: {'total': 53.85, 'task1_0-2': 53.85, 'old': 0, 'new': 53.85, 'new_to_old_err': 0.0, 'per_class': {'0': {'precision': 0.75, 'recall': 0.3333333333333333, 'f1-score': 0.46153846153846156, 'support': 9.0}, '1': {'precision': 0.68, 'recall': 0.6538461538461539, 'f1-score': 0.6666666666666666, 'support': 26.0}, '2': {'precision': 0.1, 'recall': 0.25, 'f1-score': 0.14285714285714285, 'support': 4.0}, 'accuracy': 0.5384615384615384, 'macro avg': {'precision': 0.5100000000000001, 'recall': 0.4123931623931624, 'f1-score': 0.4236874236874237, 'support': 39.0}, 'weighted avg': {'precision': 0.6366666666666666, 'recall': 0.5384615384615384, 'f1-score': 0.5656053348361041, 'support': 39.0}}, 'confusion_matrix': array([[ 3,  5,  1],
+       [ 1, 17,  8],
+       [ 0,  3,  1]])}
+2025-10-23 20:41:00,757 [trainer.py] => CNN top1 curve: [53.85]
+2025-10-23 20:41:00,757 [trainer.py] => Average Accuracy (CNN): 53.85 
+
+2025-10-23 20:41:00,758 [trainer.py] => All params: 95596131
+2025-10-23 20:41:00,759 [trainer.py] => Trainable params: 4721712
+2025-10-23 20:41:00,762 [ours.py] => Learning on 3-6
+2025-10-23 20:41:02,338 [ours.py] => Task 1, Epoch 1/20 => Train_Loss 3.481, Train_Acc 35.85%, Val_Loss 3.481, Val_Acc 35.85%, Best_Acc 0.00%, LR 2.98e-02
+2025-10-23 20:41:03,882 [ours.py] => Task 1, Epoch 2/20 => Train_Loss 3.370, Train_Acc 47.17%, Val_Loss 3.370, Val_Acc 47.17%, Best_Acc 0.00%, LR 2.93e-02
+2025-10-23 20:41:05,387 [ours.py] => Task 1, Epoch 3/20 => Train_Loss 3.286, Train_Acc 47.17%, Val_Loss 3.286, Val_Acc 47.17%, Best_Acc 0.00%, LR 2.84e-02
+2025-10-23 20:41:06,882 [ours.py] => Task 1, Epoch 4/20 => Train_Loss 3.213, Train_Acc 47.17%, Val_Loss 3.213, Val_Acc 47.17%, Best_Acc 0.00%, LR 2.71e-02
+2025-10-23 20:41:08,919 [ours.py] => Task 1, Epoch 5/20 => Train_Loss 3.180, Train_Acc 47.17%, Val_Loss 3.180, Val_Acc 47.17%, Best_Acc 0.00%, LR 2.56e-02
+2025-10-23 20:41:10,470 [ours.py] => Task 1, Epoch 6/20 => Train_Loss 3.084, Train_Acc 47.17%, Val_Loss 3.084, Val_Acc 47.17%, Best_Acc 0.00%, LR 2.38e-02
+2025-10-23 20:41:11,983 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_1.pth
+2025-10-23 20:41:12,206 [ours.py] => Task 1, Epoch 7/20 => Train_Loss 3.237, Train_Acc 47.17%, Val_Loss 3.237, Val_Acc 47.17%, Best_Acc 47.17%, LR 2.18e-02
+2025-10-23 20:41:13,700 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_1.pth
+2025-10-23 20:41:14,023 [ours.py] => Task 1, Epoch 8/20 => Train_Loss 3.179, Train_Acc 47.17%, Val_Loss 3.179, Val_Acc 47.17%, Best_Acc 47.17%, LR 1.96e-02
+2025-10-23 20:41:15,527 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_1.pth
+2025-10-23 20:41:15,854 [ours.py] => Task 1, Epoch 9/20 => Train_Loss 3.127, Train_Acc 47.17%, Val_Loss 3.127, Val_Acc 47.17%, Best_Acc 47.17%, LR 1.73e-02
+2025-10-23 20:41:17,714 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_1.pth
+2025-10-23 20:41:18,044 [ours.py] => Task 1, Epoch 10/20 => Train_Loss 3.079, Train_Acc 47.17%, Val_Loss 3.079, Val_Acc 47.17%, Best_Acc 47.17%, LR 1.50e-02
+2025-10-23 20:41:19,542 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_1.pth
+2025-10-23 20:41:19,874 [ours.py] => Task 1, Epoch 11/20 => Train_Loss 3.050, Train_Acc 47.17%, Val_Loss 3.050, Val_Acc 47.17%, Best_Acc 47.17%, LR 1.27e-02
+2025-10-23 20:41:21,428 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_1.pth
+2025-10-23 20:41:21,762 [ours.py] => Task 1, Epoch 12/20 => Train_Loss 3.008, Train_Acc 47.17%, Val_Loss 3.008, Val_Acc 47.17%, Best_Acc 47.17%, LR 1.04e-02
+2025-10-23 20:41:23,289 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_1.pth
+2025-10-23 20:41:23,617 [ours.py] => Task 1, Epoch 13/20 => Train_Loss 2.984, Train_Acc 47.17%, Val_Loss 2.984, Val_Acc 47.17%, Best_Acc 47.17%, LR 8.19e-03
+2025-10-23 20:41:25,634 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_1.pth
+2025-10-23 20:41:25,964 [ours.py] => Task 1, Epoch 14/20 => Train_Loss 2.964, Train_Acc 47.17%, Val_Loss 2.964, Val_Acc 47.17%, Best_Acc 47.17%, LR 6.18e-03
+2025-10-23 20:41:27,489 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_1.pth
+2025-10-23 20:41:27,817 [ours.py] => Task 1, Epoch 15/20 => Train_Loss 2.954, Train_Acc 47.17%, Val_Loss 2.954, Val_Acc 47.17%, Best_Acc 47.17%, LR 4.39e-03
+2025-10-23 20:41:29,325 [ours.py] => Task 1, Epoch 16/20 => Train_Loss 2.958, Train_Acc 47.17%, Val_Loss 2.958, Val_Acc 47.17%, Best_Acc 47.17%, LR 2.86e-03
+2025-10-23 20:41:30,802 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_1.pth
+2025-10-23 20:41:31,133 [ours.py] => Task 1, Epoch 17/20 => Train_Loss 2.935, Train_Acc 47.17%, Val_Loss 2.935, Val_Acc 47.17%, Best_Acc 47.17%, LR 1.63e-03
+2025-10-23 20:41:32,617 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_1.pth
+2025-10-23 20:41:32,951 [ours.py] => Task 1, Epoch 18/20 => Train_Loss 2.929, Train_Acc 47.17%, Val_Loss 2.929, Val_Acc 47.17%, Best_Acc 47.17%, LR 7.34e-04
+2025-10-23 20:41:34,948 [ours.py] => Task 1, Epoch 19/20 => Train_Loss 2.947, Train_Acc 47.17%, Val_Loss 2.947, Val_Acc 47.17%, Best_Acc 47.17%, LR 1.85e-04
+2025-10-23 20:41:36,453 [ours.py] => Task 1, Epoch 20/20 => Train_Loss 2.942, Train_Acc 47.17%, Val_Loss 2.942, Val_Acc 47.17%, Best_Acc 47.17%, LR 0.00e+00
+2025-10-23 20:41:36,642 [ours.py] => Loaded best model from epoch 17
+2025-10-23 20:41:36,643 [ours.py] => LoRA 0: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:41:36,644 [ours.py] => LoRA 1: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:41:36,644 [ours.py] => LoRA 2: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:41:36,645 [ours.py] => LoRA 3: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:41:36,645 [ours.py] => LoRA 4: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:41:36,646 [ours.py] => LoRA 5: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:41:36,646 [ours.py] => LoRA 6: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:41:36,647 [ours.py] => LoRA 7: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:41:36,647 [ours.py] => LoRA 8: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:41:36,648 [ours.py] => LoRA 9: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:41:36,648 [ours.py] => LoRA 10: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:41:36,649 [ours.py] => LoRA 11: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:41:36,649 [ours.py] => LoRA 12: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:41:36,650 [ours.py] => LoRA 13: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:41:36,650 [ours.py] => LoRA 14: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:41:36,651 [ours.py] => LoRA 15: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:41:36,651 [ours.py] => LoRA 16: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:41:36,652 [ours.py] => LoRA 17: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:41:36,652 [ours.py] => LoRA 18: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:41:36,653 [ours.py] => LoRA 19: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:41:36,653 [ours.py] => LoRA 20: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:41:36,654 [ours.py] => LoRA 21: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:41:36,654 [ours.py] => LoRA 22: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:41:36,655 [ours.py] => LoRA 23: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:41:36,655 [ours.py] => LoRA 24: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:41:36,656 [ours.py] => LoRA 25: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:41:36,656 [ours.py] => LoRA 26: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:41:36,657 [ours.py] => LoRA 27: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:41:36,657 [ours.py] => LoRA 28: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:41:36,658 [ours.py] => LoRA 29: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:41:36,658 [ours.py] => LoRA 30: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:41:36,659 [ours.py] => LoRA 31: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:41:36,659 [ours.py] => LoRA 32: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:41:36,660 [ours.py] => LoRA 33: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:41:36,660 [ours.py] => LoRA 34: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:41:36,661 [ours.py] => LoRA 35: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:41:36,661 [ours.py] => LoRA 36: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:41:36,661 [ours.py] => LoRA 37: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:41:36,662 [ours.py] => LoRA 38: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:41:36,662 [ours.py] => LoRA 39: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:41:36,663 [ours.py] => LoRA 40: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:41:36,663 [ours.py] => LoRA 41: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:41:36,664 [ours.py] => LoRA 42: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:41:36,664 [ours.py] => LoRA 43: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:41:36,665 [ours.py] => LoRA 44: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:41:36,665 [ours.py] => LoRA 45: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:41:36,666 [ours.py] => LoRA 46: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:41:36,666 [ours.py] => LoRA 47: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:41:36,666 [ours.py] => Overall LoRA Compression: 0.062 (294912/4718592 parameters)
+2025-10-23 20:41:39,612 [ours.py] => Task correct: 82.08955223880596
+2025-10-23 20:41:39,612 [ours.py] => Task acc: 50.74626865671642
+2025-10-23 20:41:40,446 [trainer.py] => No NME accuracy.
+2025-10-23 20:41:40,447 [trainer.py] => CNN: {'total': 43.28, 'task1_0-2': 43.59, 'task2_3-5': 42.86, 'old': 43.59, 'new': 42.86, 'old_to_new_err': 20.51, 'new_to_old_err': 14.29, 'per_class': {'0': {'precision': 0.0, 'recall': 0.0, 'f1-score': 0.0, 'support': 9.0}, '1': {'precision': 0.5925925925925926, 'recall': 0.6153846153846154, 'f1-score': 0.6037735849056604, 'support': 26.0}, '2': {'precision': 0.125, 'recall': 0.25, 'f1-score': 0.16666666666666666, 'support': 4.0}, '3': {'precision': 0.0, 'recall': 0.0, 'f1-score': 0.0, 'support': 6.0}, '4': {'precision': 0.25, 'recall': 0.5555555555555556, 'f1-score': 0.3448275862068966, 'support': 9.0}, '5': {'precision': 0.5833333333333334, 'recall': 0.5384615384615384, 'f1-score': 0.56, 'support': 13.0}, 'accuracy': 0.43283582089552236, 'macro avg': {'precision': 0.2584876543209877, 'recall': 0.3265669515669516, 'f1-score': 0.2792113062965373, 'support': 67.0}, 'weighted avg': {'precision': 0.38419016030956327, 'recall': 0.43283582089552236, 'f1-score': 0.3992272858220285, 'support': 67.0}}, 'confusion_matrix': array([[ 0,  5,  1,  0,  3,  0],
+       [ 0, 16,  5,  0,  4,  1],
+       [ 0,  3,  1,  0,  0,  0],
+       [ 0,  1,  0,  0,  4,  1],
+       [ 0,  1,  0,  0,  5,  3],
+       [ 0,  1,  1,  0,  4,  7]])}
+2025-10-23 20:41:40,447 [trainer.py] => CNN grouped: {'total': 52.24, 'task1_0-2': 52.24, 'task2_3-5': 0.0, 'old': 52.24, 'new': 0, 'old_to_new_err': 0.0, 'per_class': {'0': {'precision': 0.0, 'recall': 0.0, 'f1-score': 0.0, 'support': 15.0}, '1': {'precision': 0.5531914893617021, 'recall': 0.7428571428571429, 'f1-score': 0.6341463414634146, 'support': 35.0}, '2': {'precision': 0.45, 'recall': 0.5294117647058824, 'f1-score': 0.4864864864864865, 'support': 17.0}, 'accuracy': 0.5223880597014925, 'macro avg': {'precision': 0.3343971631205674, 'recall': 0.42408963585434173, 'f1-score': 0.37354427598330037, 'support': 67.0}, 'weighted avg': {'precision': 0.4031597332486504, 'recall': 0.5223880597014925, 'f1-score': 0.45470734658939976, 'support': 67.0}}, 'confusion_matrix': array([[ 0, 13,  2],
+       [ 0, 26,  9],
+       [ 0,  8,  9]])}
+2025-10-23 20:41:40,447 [trainer.py] => CNN top1 curve: [53.85, 52.24]
+2025-10-23 20:41:40,447 [trainer.py] => Average Accuracy (CNN): 53.045 
+
+2025-10-23 20:41:40,449 [trainer.py] => All params: 100329316
+2025-10-23 20:41:40,450 [trainer.py] => Trainable params: 4721712
+2025-10-23 20:41:40,452 [ours.py] => Learning on 6-9
+2025-10-23 20:41:42,632 [ours.py] => Task 2, Epoch 1/20 => Train_Loss 3.450, Train_Acc 52.94%, Val_Loss 3.450, Val_Acc 52.94%, Best_Acc 0.00%, LR 2.98e-02
+2025-10-23 20:41:44,687 [ours.py] => Task 2, Epoch 2/20 => Train_Loss 3.311, Train_Acc 52.94%, Val_Loss 3.311, Val_Acc 52.94%, Best_Acc 0.00%, LR 2.93e-02
+2025-10-23 20:41:46,393 [ours.py] => Task 2, Epoch 3/20 => Train_Loss 3.239, Train_Acc 52.94%, Val_Loss 3.239, Val_Acc 52.94%, Best_Acc 0.00%, LR 2.84e-02
+2025-10-23 20:41:48,100 [ours.py] => Task 2, Epoch 4/20 => Train_Loss 3.154, Train_Acc 52.94%, Val_Loss 3.154, Val_Acc 52.94%, Best_Acc 0.00%, LR 2.71e-02
+2025-10-23 20:41:49,823 [ours.py] => Task 2, Epoch 5/20 => Train_Loss 3.092, Train_Acc 52.94%, Val_Loss 3.092, Val_Acc 52.94%, Best_Acc 0.00%, LR 2.56e-02
+2025-10-23 20:41:52,218 [ours.py] => Task 2, Epoch 6/20 => Train_Loss 3.033, Train_Acc 52.94%, Val_Loss 3.033, Val_Acc 52.94%, Best_Acc 0.00%, LR 2.38e-02
+2025-10-23 20:41:53,926 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_2.pth
+2025-10-23 20:41:54,171 [ours.py] => Task 2, Epoch 7/20 => Train_Loss 3.229, Train_Acc 52.94%, Val_Loss 3.229, Val_Acc 52.94%, Best_Acc 52.94%, LR 2.18e-02
+2025-10-23 20:41:55,881 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_2.pth
+2025-10-23 20:41:56,245 [ours.py] => Task 2, Epoch 8/20 => Train_Loss 3.159, Train_Acc 52.94%, Val_Loss 3.159, Val_Acc 52.94%, Best_Acc 52.94%, LR 1.96e-02
+2025-10-23 20:41:57,991 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_2.pth
+2025-10-23 20:41:58,339 [ours.py] => Task 2, Epoch 9/20 => Train_Loss 3.107, Train_Acc 52.94%, Val_Loss 3.107, Val_Acc 52.94%, Best_Acc 52.94%, LR 1.73e-02
+2025-10-23 20:42:01,206 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_2.pth
+2025-10-23 20:42:01,557 [ours.py] => Task 2, Epoch 10/20 => Train_Loss 3.056, Train_Acc 52.94%, Val_Loss 3.056, Val_Acc 52.94%, Best_Acc 52.94%, LR 1.50e-02
+2025-10-23 20:42:03,256 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_2.pth
+2025-10-23 20:42:03,610 [ours.py] => Task 2, Epoch 11/20 => Train_Loss 3.027, Train_Acc 52.94%, Val_Loss 3.027, Val_Acc 52.94%, Best_Acc 52.94%, LR 1.27e-02
+2025-10-23 20:42:05,312 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_2.pth
+2025-10-23 20:42:05,668 [ours.py] => Task 2, Epoch 12/20 => Train_Loss 2.989, Train_Acc 52.94%, Val_Loss 2.989, Val_Acc 52.94%, Best_Acc 52.94%, LR 1.04e-02
+2025-10-23 20:42:07,384 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_2.pth
+2025-10-23 20:42:07,740 [ours.py] => Task 2, Epoch 13/20 => Train_Loss 2.967, Train_Acc 52.94%, Val_Loss 2.967, Val_Acc 52.94%, Best_Acc 52.94%, LR 8.19e-03
+2025-10-23 20:42:09,950 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_2.pth
+2025-10-23 20:42:10,309 [ours.py] => Task 2, Epoch 14/20 => Train_Loss 2.948, Train_Acc 52.94%, Val_Loss 2.948, Val_Acc 52.94%, Best_Acc 52.94%, LR 6.18e-03
+2025-10-23 20:42:12,028 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_2.pth
+2025-10-23 20:42:12,385 [ours.py] => Task 2, Epoch 15/20 => Train_Loss 2.932, Train_Acc 52.94%, Val_Loss 2.932, Val_Acc 52.94%, Best_Acc 52.94%, LR 4.39e-03
+2025-10-23 20:42:14,092 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_2.pth
+2025-10-23 20:42:14,454 [ours.py] => Task 2, Epoch 16/20 => Train_Loss 2.920, Train_Acc 52.94%, Val_Loss 2.920, Val_Acc 52.94%, Best_Acc 52.94%, LR 2.86e-03
+2025-10-23 20:42:16,204 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_2.pth
+2025-10-23 20:42:16,565 [ours.py] => Task 2, Epoch 17/20 => Train_Loss 2.912, Train_Acc 52.94%, Val_Loss 2.912, Val_Acc 52.94%, Best_Acc 52.94%, LR 1.63e-03
+2025-10-23 20:42:18,271 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_2.pth
+2025-10-23 20:42:18,630 [ours.py] => Task 2, Epoch 18/20 => Train_Loss 2.912, Train_Acc 52.94%, Val_Loss 2.912, Val_Acc 52.94%, Best_Acc 52.94%, LR 7.34e-04
+2025-10-23 20:42:20,358 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_2.pth
+2025-10-23 20:42:20,722 [ours.py] => Task 2, Epoch 19/20 => Train_Loss 2.909, Train_Acc 52.94%, Val_Loss 2.909, Val_Acc 52.94%, Best_Acc 52.94%, LR 1.85e-04
+2025-10-23 20:42:22,463 [ours.py] => Task 2, Epoch 20/20 => Train_Loss 2.910, Train_Acc 52.94%, Val_Loss 2.910, Val_Acc 52.94%, Best_Acc 52.94%, LR 0.00e+00
+2025-10-23 20:42:22,717 [ours.py] => Loaded best model from epoch 18
+2025-10-23 20:42:22,726 [ours.py] => LoRA 0: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:22,727 [ours.py] => LoRA 1: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:22,727 [ours.py] => LoRA 2: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:22,728 [ours.py] => LoRA 3: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:22,728 [ours.py] => LoRA 4: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:22,729 [ours.py] => LoRA 5: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:22,729 [ours.py] => LoRA 6: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:22,730 [ours.py] => LoRA 7: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:22,730 [ours.py] => LoRA 8: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:22,731 [ours.py] => LoRA 9: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:22,731 [ours.py] => LoRA 10: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:22,732 [ours.py] => LoRA 11: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:22,732 [ours.py] => LoRA 12: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:22,733 [ours.py] => LoRA 13: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:22,733 [ours.py] => LoRA 14: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:22,734 [ours.py] => LoRA 15: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:22,734 [ours.py] => LoRA 16: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:22,735 [ours.py] => LoRA 17: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:22,735 [ours.py] => LoRA 18: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:22,736 [ours.py] => LoRA 19: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:22,736 [ours.py] => LoRA 20: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:22,737 [ours.py] => LoRA 21: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:22,737 [ours.py] => LoRA 22: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:22,738 [ours.py] => LoRA 23: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:22,738 [ours.py] => LoRA 24: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:22,738 [ours.py] => LoRA 25: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:22,739 [ours.py] => LoRA 26: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:22,739 [ours.py] => LoRA 27: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:22,740 [ours.py] => LoRA 28: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:22,740 [ours.py] => LoRA 29: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:22,741 [ours.py] => LoRA 30: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:22,741 [ours.py] => LoRA 31: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:22,742 [ours.py] => LoRA 32: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:22,742 [ours.py] => LoRA 33: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:22,743 [ours.py] => LoRA 34: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:22,743 [ours.py] => LoRA 35: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:22,744 [ours.py] => LoRA 36: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:22,744 [ours.py] => LoRA 37: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:22,745 [ours.py] => LoRA 38: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:22,745 [ours.py] => LoRA 39: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:22,746 [ours.py] => LoRA 40: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:22,746 [ours.py] => LoRA 41: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:22,747 [ours.py] => LoRA 42: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:22,747 [ours.py] => LoRA 43: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:22,748 [ours.py] => LoRA 44: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:22,748 [ours.py] => LoRA 45: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:22,749 [ours.py] => LoRA 46: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:22,749 [ours.py] => LoRA 47: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:22,749 [ours.py] => Overall LoRA Compression: 0.062 (294912/4718592 parameters)
+2025-10-23 20:42:26,840 [ours.py] => Task correct: 62.244897959183675
+2025-10-23 20:42:26,840 [ours.py] => Task acc: 47.95918367346939
+2025-10-23 20:42:27,870 [trainer.py] => No NME accuracy.
+2025-10-23 20:42:27,870 [trainer.py] => CNN: {'total': 33.67, 'task1_0-2': 43.59, 'task2_3-5': 42.86, 'task3_6-8': 12.9, 'old': 43.28, 'new': 12.9, 'old_to_new_err': 1.49, 'new_to_old_err': 80.65, 'per_class': {'0': {'precision': 0.0, 'recall': 0.0, 'f1-score': 0.0, 'support': 9.0}, '1': {'precision': 0.5925925925925926, 'recall': 0.6153846153846154, 'f1-score': 0.6037735849056604, 'support': 26.0}, '2': {'precision': 0.125, 'recall': 0.25, 'f1-score': 0.16666666666666666, 'support': 4.0}, '3': {'precision': 0.0, 'recall': 0.0, 'f1-score': 0.0, 'support': 6.0}, '4': {'precision': 0.12195121951219512, 'recall': 0.5555555555555556, 'f1-score': 0.2, 'support': 9.0}, '5': {'precision': 0.4666666666666667, 'recall': 0.5384615384615384, 'f1-score': 0.5, 'support': 13.0}, '6': {'precision': 0.8, 'recall': 0.4, 'f1-score': 0.5333333333333333, 'support': 10.0}, '7': {'precision': 0.0, 'recall': 0.0, 'f1-score': 0.0, 'support': 16.0}, '8': {'precision': 0.0, 'recall': 0.0, 'f1-score': 0.0, 'support': 5.0}, 'accuracy': 0.336734693877551, 'macro avg': {'precision': 0.2340233865301616, 'recall': 0.26215574548907883, 'f1-score': 0.2226415094339623, 'support': 98.0}, 'weighted avg': {'precision': 0.31705750050697784, 'recall': 0.336734693877551, 'f1-score': 0.3061031959953793, 'support': 98.0}}, 'confusion_matrix': array([[ 0,  5,  1,  0,  2,  0,  0,  0,  1],
+       [ 0, 16,  5,  0,  4,  1,  0,  0,  0],
+       [ 0,  3,  1,  0,  0,  0,  0,  0,  0],
+       [ 0,  1,  0,  0,  4,  1,  0,  0,  0],
+       [ 0,  1,  0,  0,  5,  3,  0,  0,  0],
+       [ 0,  1,  1,  0,  4,  7,  0,  0,  0],
+       [ 0,  0,  0,  0,  6,  0,  4,  0,  0],
+       [ 0,  0,  0,  0, 13,  2,  0,  0,  1],
+       [ 0,  0,  0,  0,  3,  1,  1,  0,  0]])}
+2025-10-23 20:42:27,870 [trainer.py] => CNN grouped: {'total': 54.08, 'task1_0-2': 54.08, 'task2_3-5': 0.0, 'task3_6-8': 0.0, 'old': 54.08, 'new': 0, 'old_to_new_err': 0.0, 'per_class': {'0': {'precision': 0.8, 'recall': 0.16, 'f1-score': 0.26666666666666666, 'support': 25.0}, '1': {'precision': 0.5735294117647058, 'recall': 0.7647058823529411, 'f1-score': 0.6554621848739496, 'support': 51.0}, '2': {'precision': 0.4, 'recall': 0.45454545454545453, 'f1-score': 0.425531914893617, 'support': 22.0}, 'accuracy': 0.5408163265306123, 'macro avg': {'precision': 0.5911764705882353, 'recall': 0.45975044563279854, 'f1-score': 0.44922025547807776, 'support': 98.0}, 'weighted avg': {'precision': 0.5923469387755101, 'recall': 0.5408163265306123, 'f1-score': 0.5046626553356905, 'support': 98.0}}, 'confusion_matrix': array([[ 4, 18,  3],
+       [ 0, 39, 12],
+       [ 1, 11, 10]])}
+2025-10-23 20:42:27,870 [trainer.py] => CNN top1 curve: [53.85, 52.24, 54.08]
+2025-10-23 20:42:27,870 [trainer.py] => Average Accuracy (CNN): 53.39000000000001 
+
+2025-10-23 20:42:27,873 [trainer.py] => All params: 105067109
+2025-10-23 20:42:27,874 [trainer.py] => Trainable params: 4721712
+2025-10-23 20:42:27,875 [ours.py] => Learning on 9-12
+2025-10-23 20:42:28,571 [ours.py] => Task 3, Epoch 1/20 => Train_Loss 3.492, Train_Acc 33.33%, Val_Loss 3.492, Val_Acc 33.33%, Best_Acc 0.00%, LR 2.98e-02
+2025-10-23 20:42:29,296 [ours.py] => Task 3, Epoch 2/20 => Train_Loss 3.245, Train_Acc 66.67%, Val_Loss 3.245, Val_Acc 66.67%, Best_Acc 0.00%, LR 2.93e-02
+2025-10-23 20:42:30,019 [ours.py] => Task 3, Epoch 3/20 => Train_Loss 3.178, Train_Acc 66.67%, Val_Loss 3.178, Val_Acc 66.67%, Best_Acc 0.00%, LR 2.84e-02
+2025-10-23 20:42:31,024 [ours.py] => Task 3, Epoch 4/20 => Train_Loss 3.126, Train_Acc 66.67%, Val_Loss 3.126, Val_Acc 66.67%, Best_Acc 0.00%, LR 2.71e-02
+2025-10-23 20:42:31,747 [ours.py] => Task 3, Epoch 5/20 => Train_Loss 3.077, Train_Acc 66.67%, Val_Loss 3.077, Val_Acc 66.67%, Best_Acc 0.00%, LR 2.56e-02
+2025-10-23 20:42:32,485 [ours.py] => Task 3, Epoch 6/20 => Train_Loss 3.030, Train_Acc 66.67%, Val_Loss 3.030, Val_Acc 66.67%, Best_Acc 0.00%, LR 2.38e-02
+2025-10-23 20:42:33,217 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_3.pth
+2025-10-23 20:42:33,475 [ours.py] => Task 3, Epoch 7/20 => Train_Loss 3.344, Train_Acc 66.67%, Val_Loss 3.344, Val_Acc 66.67%, Best_Acc 66.67%, LR 2.18e-02
+2025-10-23 20:42:34,195 [ours.py] => Task 3, Epoch 8/20 => Train_Loss 3.351, Train_Acc 66.67%, Val_Loss 3.351, Val_Acc 66.67%, Best_Acc 66.67%, LR 1.96e-02
+2025-10-23 20:42:34,928 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_3.pth
+2025-10-23 20:42:35,307 [ours.py] => Task 3, Epoch 9/20 => Train_Loss 3.274, Train_Acc 66.67%, Val_Loss 3.274, Val_Acc 66.67%, Best_Acc 66.67%, LR 1.73e-02
+2025-10-23 20:42:36,018 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_3.pth
+2025-10-23 20:42:36,393 [ours.py] => Task 3, Epoch 10/20 => Train_Loss 3.215, Train_Acc 66.67%, Val_Loss 3.215, Val_Acc 66.67%, Best_Acc 66.67%, LR 1.50e-02
+2025-10-23 20:42:37,121 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_3.pth
+2025-10-23 20:42:37,494 [ours.py] => Task 3, Epoch 11/20 => Train_Loss 3.181, Train_Acc 66.67%, Val_Loss 3.181, Val_Acc 66.67%, Best_Acc 66.67%, LR 1.27e-02
+2025-10-23 20:42:38,237 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_3.pth
+2025-10-23 20:42:38,594 [ours.py] => Task 3, Epoch 12/20 => Train_Loss 3.160, Train_Acc 66.67%, Val_Loss 3.160, Val_Acc 66.67%, Best_Acc 66.67%, LR 1.04e-02
+2025-10-23 20:42:39,740 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_3.pth
+2025-10-23 20:42:40,108 [ours.py] => Task 3, Epoch 13/20 => Train_Loss 3.143, Train_Acc 66.67%, Val_Loss 3.143, Val_Acc 66.67%, Best_Acc 66.67%, LR 8.19e-03
+2025-10-23 20:42:40,975 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_3.pth
+2025-10-23 20:42:41,333 [ours.py] => Task 3, Epoch 14/20 => Train_Loss 3.128, Train_Acc 66.67%, Val_Loss 3.128, Val_Acc 66.67%, Best_Acc 66.67%, LR 6.18e-03
+2025-10-23 20:42:42,086 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_3.pth
+2025-10-23 20:42:42,449 [ours.py] => Task 3, Epoch 15/20 => Train_Loss 3.118, Train_Acc 66.67%, Val_Loss 3.118, Val_Acc 66.67%, Best_Acc 66.67%, LR 4.39e-03
+2025-10-23 20:42:43,196 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_3.pth
+2025-10-23 20:42:43,566 [ours.py] => Task 3, Epoch 16/20 => Train_Loss 3.110, Train_Acc 66.67%, Val_Loss 3.110, Val_Acc 66.67%, Best_Acc 66.67%, LR 2.86e-03
+2025-10-23 20:42:44,292 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_3.pth
+2025-10-23 20:42:44,645 [ours.py] => Task 3, Epoch 17/20 => Train_Loss 3.104, Train_Acc 66.67%, Val_Loss 3.104, Val_Acc 66.67%, Best_Acc 66.67%, LR 1.63e-03
+2025-10-23 20:42:45,369 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_3.pth
+2025-10-23 20:42:45,729 [ours.py] => Task 3, Epoch 18/20 => Train_Loss 3.101, Train_Acc 66.67%, Val_Loss 3.101, Val_Acc 66.67%, Best_Acc 66.67%, LR 7.34e-04
+2025-10-23 20:42:46,488 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_3.pth
+2025-10-23 20:42:46,845 [ours.py] => Task 3, Epoch 19/20 => Train_Loss 3.100, Train_Acc 66.67%, Val_Loss 3.100, Val_Acc 66.67%, Best_Acc 66.67%, LR 1.85e-04
+2025-10-23 20:42:47,946 [ours.py] => Task 3, Epoch 20/20 => Train_Loss 3.100, Train_Acc 66.67%, Val_Loss 3.100, Val_Acc 66.67%, Best_Acc 66.67%, LR 0.00e+00
+2025-10-23 20:42:48,288 [ours.py] => Loaded best model from epoch 18
+2025-10-23 20:42:48,309 [ours.py] => LoRA 0: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:48,331 [ours.py] => LoRA 1: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:48,353 [ours.py] => LoRA 2: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:48,375 [ours.py] => LoRA 3: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:48,396 [ours.py] => LoRA 4: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:48,412 [ours.py] => LoRA 5: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:48,414 [ours.py] => LoRA 6: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:48,415 [ours.py] => LoRA 7: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:48,415 [ours.py] => LoRA 8: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:48,416 [ours.py] => LoRA 9: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:48,416 [ours.py] => LoRA 10: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:48,417 [ours.py] => LoRA 11: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:48,417 [ours.py] => LoRA 12: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:48,418 [ours.py] => LoRA 13: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:48,418 [ours.py] => LoRA 14: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:48,419 [ours.py] => LoRA 15: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:48,419 [ours.py] => LoRA 16: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:48,420 [ours.py] => LoRA 17: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:48,421 [ours.py] => LoRA 18: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:48,421 [ours.py] => LoRA 19: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:48,422 [ours.py] => LoRA 20: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:48,422 [ours.py] => LoRA 21: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:48,423 [ours.py] => LoRA 22: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:48,423 [ours.py] => LoRA 23: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:48,424 [ours.py] => LoRA 24: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:48,424 [ours.py] => LoRA 25: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:48,425 [ours.py] => LoRA 26: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:48,425 [ours.py] => LoRA 27: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:48,426 [ours.py] => LoRA 28: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:48,426 [ours.py] => LoRA 29: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:48,427 [ours.py] => LoRA 30: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:48,427 [ours.py] => LoRA 31: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:48,428 [ours.py] => LoRA 32: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:48,429 [ours.py] => LoRA 33: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:48,429 [ours.py] => LoRA 34: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:48,430 [ours.py] => LoRA 35: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:48,430 [ours.py] => LoRA 36: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:48,431 [ours.py] => LoRA 37: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:48,431 [ours.py] => LoRA 38: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:48,432 [ours.py] => LoRA 39: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:48,432 [ours.py] => LoRA 40: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:48,433 [ours.py] => LoRA 41: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:48,433 [ours.py] => LoRA 42: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:48,434 [ours.py] => LoRA 43: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:48,434 [ours.py] => LoRA 44: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:48,435 [ours.py] => LoRA 45: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:48,435 [ours.py] => LoRA 46: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:48,436 [ours.py] => LoRA 47: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:42:48,436 [ours.py] => Overall LoRA Compression: 0.062 (294912/4718592 parameters)
+2025-10-23 20:42:51,655 [ours.py] => Task correct: 60.19417475728155
+2025-10-23 20:42:51,655 [ours.py] => Task acc: 49.51456310679612
+2025-10-23 20:42:52,559 [trainer.py] => No NME accuracy.
+2025-10-23 20:42:52,560 [trainer.py] => CNN: {'total': 33.01, 'task1_0-2': 43.59, 'task2_3-5': 42.86, 'task3_6-8': 12.9, 'task4_9-11': 20.0, 'old': 33.67, 'new': 20.0, 'old_to_new_err': 1.02, 'new_to_old_err': 80.0, 'per_class': {'0': {'precision': 0.0, 'recall': 0.0, 'f1-score': 0.0, 'support': 9.0}, '1': {'precision': 0.5925925925925926, 'recall': 0.6153846153846154, 'f1-score': 0.6037735849056604, 'support': 26.0}, '2': {'precision': 0.125, 'recall': 0.25, 'f1-score': 0.16666666666666666, 'support': 4.0}, '3': {'precision': 0.0, 'recall': 0.0, 'f1-score': 0.0, 'support': 6.0}, '4': {'precision': 0.11904761904761904, 'recall': 0.5555555555555556, 'f1-score': 0.19607843137254902, 'support': 9.0}, '5': {'precision': 0.4117647058823529, 'recall': 0.5384615384615384, 'f1-score': 0.4666666666666667, 'support': 13.0}, '6': {'precision': 0.8, 'recall': 0.4, 'f1-score': 0.5333333333333333, 'support': 10.0}, '7': {'precision': 0.0, 'recall': 0.0, 'f1-score': 0.0, 'support': 16.0}, '8': {'precision': 0.0, 'recall': 0.0, 'f1-score': 0.0, 'support': 5.0}, '9': {'precision': 0.5, 'recall': 1.0, 'f1-score': 0.6666666666666666, 'support': 1.0}, '10': {'precision': 0.0, 'recall': 0.0, 'f1-score': 0.0, 'support': 3.0}, '11': {'precision': 0.0, 'recall': 0.0, 'f1-score': 0.0, 'support': 1.0}, 'accuracy': 0.3300970873786408, 'macro avg': {'precision': 0.21236707646021372, 'recall': 0.27995014245014244, 'f1-score': 0.21943211246762853, 'support': 103.0}, 'weighted avg': {'precision': 0.2993376422845298, 'recall': 0.3300970873786408, 'f1-score': 0.29316652838090723, 'support': 103.0}}, 'confusion_matrix': array([[ 0,  5,  1,  0,  2,  0,  0,  0,  1,  0,  0,  0],
+       [ 0, 16,  5,  0,  3,  1,  0,  0,  0,  1,  0,  0],
+       [ 0,  3,  1,  0,  0,  0,  0,  0,  0,  0,  0,  0],
+       [ 0,  1,  0,  0,  4,  1,  0,  0,  0,  0,  0,  0],
+       [ 0,  1,  0,  0,  5,  3,  0,  0,  0,  0,  0,  0],
+       [ 0,  1,  1,  0,  4,  7,  0,  0,  0,  0,  0,  0],
+       [ 0,  0,  0,  0,  6,  0,  4,  0,  0,  0,  0,  0],
+       [ 0,  0,  0,  0, 13,  2,  0,  0,  1,  0,  0,  0],
+       [ 0,  0,  0,  0,  3,  1,  1,  0,  0,  0,  0,  0],
+       [ 0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  0,  0],
+       [ 0,  0,  0,  0,  2,  1,  0,  0,  0,  0,  0,  0],
+       [ 0,  0,  0,  0,  0,  1,  0,  0,  0,  0,  0,  0]])}
+2025-10-23 20:42:52,560 [trainer.py] => CNN grouped: {'total': 54.37, 'task1_0-2': 54.37, 'task2_3-5': 0.0, 'task3_6-8': 0.0, 'task4_9-11': 0.0, 'old': 54.37, 'new': 0, 'old_to_new_err': 0.0, 'per_class': {'0': {'precision': 0.7142857142857143, 'recall': 0.19230769230769232, 'f1-score': 0.30303030303030304, 'support': 26.0}, '1': {'precision': 0.5797101449275363, 'recall': 0.7407407407407407, 'f1-score': 0.6504065040650406, 'support': 54.0}, '2': {'precision': 0.4074074074074074, 'recall': 0.4782608695652174, 'f1-score': 0.44, 'support': 23.0}, 'accuracy': 0.5436893203883495, 'macro avg': {'precision': 0.567134422206886, 'recall': 0.4704364342045501, 'f1-score': 0.46447893569844784, 'support': 103.0}, 'weighted avg': {'precision': 0.5752053084260768, 'recall': 0.5436893203883495, 'f1-score': 0.515735331051457, 'support': 103.0}}, 'confusion_matrix': array([[ 5, 18,  3],
+       [ 1, 40, 13],
+       [ 1, 11, 11]])}
+2025-10-23 20:42:52,560 [trainer.py] => CNN top1 curve: [53.85, 52.24, 54.08, 54.37]
+2025-10-23 20:42:52,560 [trainer.py] => Average Accuracy (CNN): 53.635000000000005 
+
+2025-10-23 20:42:52,562 [trainer.py] => All params: 109809510
+2025-10-23 20:42:52,564 [trainer.py] => Trainable params: 4721712
+2025-10-23 20:42:52,565 [ours.py] => Learning on 12-15
+2025-10-23 20:42:53,576 [ours.py] => Task 4, Epoch 1/20 => Train_Loss 3.470, Train_Acc 55.00%, Val_Loss 3.470, Val_Acc 55.00%, Best_Acc 0.00%, LR 2.98e-02
+2025-10-23 20:42:54,609 [ours.py] => Task 4, Epoch 2/20 => Train_Loss 3.231, Train_Acc 55.00%, Val_Loss 3.231, Val_Acc 55.00%, Best_Acc 0.00%, LR 2.93e-02
+2025-10-23 20:42:55,630 [ours.py] => Task 4, Epoch 3/20 => Train_Loss 3.161, Train_Acc 55.00%, Val_Loss 3.161, Val_Acc 55.00%, Best_Acc 0.00%, LR 2.84e-02
+2025-10-23 20:42:56,876 [ours.py] => Task 4, Epoch 4/20 => Train_Loss 3.099, Train_Acc 55.00%, Val_Loss 3.099, Val_Acc 55.00%, Best_Acc 0.00%, LR 2.71e-02
+2025-10-23 20:42:58,223 [ours.py] => Task 4, Epoch 5/20 => Train_Loss 3.045, Train_Acc 55.00%, Val_Loss 3.045, Val_Acc 55.00%, Best_Acc 0.00%, LR 2.56e-02
+2025-10-23 20:42:59,255 [ours.py] => Task 4, Epoch 6/20 => Train_Loss 2.994, Train_Acc 55.00%, Val_Loss 2.994, Val_Acc 55.00%, Best_Acc 0.00%, LR 2.38e-02
+2025-10-23 20:43:00,297 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_4.pth
+2025-10-23 20:43:00,573 [ours.py] => Task 4, Epoch 7/20 => Train_Loss 3.179, Train_Acc 60.00%, Val_Loss 3.179, Val_Acc 60.00%, Best_Acc 60.00%, LR 2.18e-02
+2025-10-23 20:43:01,583 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_4.pth
+2025-10-23 20:43:01,983 [ours.py] => Task 4, Epoch 8/20 => Train_Loss 3.174, Train_Acc 55.00%, Val_Loss 3.174, Val_Acc 55.00%, Best_Acc 55.00%, LR 1.96e-02
+2025-10-23 20:43:03,028 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_4.pth
+2025-10-23 20:43:03,423 [ours.py] => Task 4, Epoch 9/20 => Train_Loss 3.109, Train_Acc 60.00%, Val_Loss 3.109, Val_Acc 60.00%, Best_Acc 60.00%, LR 1.73e-02
+2025-10-23 20:43:04,470 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_4.pth
+2025-10-23 20:43:04,863 [ours.py] => Task 4, Epoch 10/20 => Train_Loss 3.051, Train_Acc 60.00%, Val_Loss 3.051, Val_Acc 60.00%, Best_Acc 60.00%, LR 1.50e-02
+2025-10-23 20:43:05,878 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_4.pth
+2025-10-23 20:43:06,279 [ours.py] => Task 4, Epoch 11/20 => Train_Loss 3.019, Train_Acc 60.00%, Val_Loss 3.019, Val_Acc 60.00%, Best_Acc 60.00%, LR 1.27e-02
+2025-10-23 20:43:07,478 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_4.pth
+2025-10-23 20:43:07,878 [ours.py] => Task 4, Epoch 12/20 => Train_Loss 2.995, Train_Acc 60.00%, Val_Loss 2.995, Val_Acc 60.00%, Best_Acc 60.00%, LR 1.04e-02
+2025-10-23 20:43:08,921 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_4.pth
+2025-10-23 20:43:09,304 [ours.py] => Task 4, Epoch 13/20 => Train_Loss 2.973, Train_Acc 60.00%, Val_Loss 2.973, Val_Acc 60.00%, Best_Acc 60.00%, LR 8.19e-03
+2025-10-23 20:43:10,361 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_4.pth
+2025-10-23 20:43:10,757 [ours.py] => Task 4, Epoch 14/20 => Train_Loss 2.955, Train_Acc 60.00%, Val_Loss 2.955, Val_Acc 60.00%, Best_Acc 60.00%, LR 6.18e-03
+2025-10-23 20:43:11,773 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_4.pth
+2025-10-23 20:43:12,160 [ours.py] => Task 4, Epoch 15/20 => Train_Loss 2.942, Train_Acc 60.00%, Val_Loss 2.942, Val_Acc 60.00%, Best_Acc 60.00%, LR 4.39e-03
+2025-10-23 20:43:13,213 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_4.pth
+2025-10-23 20:43:13,598 [ours.py] => Task 4, Epoch 16/20 => Train_Loss 2.932, Train_Acc 60.00%, Val_Loss 2.932, Val_Acc 60.00%, Best_Acc 60.00%, LR 2.86e-03
+2025-10-23 20:43:14,669 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_4.pth
+2025-10-23 20:43:15,065 [ours.py] => Task 4, Epoch 17/20 => Train_Loss 2.925, Train_Acc 60.00%, Val_Loss 2.925, Val_Acc 60.00%, Best_Acc 60.00%, LR 1.63e-03
+2025-10-23 20:43:16,121 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_4.pth
+2025-10-23 20:43:16,688 [ours.py] => Task 4, Epoch 18/20 => Train_Loss 2.922, Train_Acc 60.00%, Val_Loss 2.922, Val_Acc 60.00%, Best_Acc 60.00%, LR 7.34e-04
+2025-10-23 20:43:17,758 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_4.pth
+2025-10-23 20:43:18,144 [ours.py] => Task 4, Epoch 19/20 => Train_Loss 2.920, Train_Acc 60.00%, Val_Loss 2.920, Val_Acc 60.00%, Best_Acc 60.00%, LR 1.85e-04
+2025-10-23 20:43:19,196 [ours.py] => Task 4, Epoch 20/20 => Train_Loss 2.921, Train_Acc 60.00%, Val_Loss 2.921, Val_Acc 60.00%, Best_Acc 60.00%, LR 0.00e+00
+2025-10-23 20:43:19,410 [ours.py] => Loaded best model from epoch 18
+2025-10-23 20:43:19,413 [ours.py] => LoRA 0: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:43:19,414 [ours.py] => LoRA 1: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:43:19,414 [ours.py] => LoRA 2: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:43:19,415 [ours.py] => LoRA 3: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:43:19,415 [ours.py] => LoRA 4: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:43:19,416 [ours.py] => LoRA 5: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:43:19,416 [ours.py] => LoRA 6: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:43:19,417 [ours.py] => LoRA 7: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:43:19,417 [ours.py] => LoRA 8: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:43:19,418 [ours.py] => LoRA 9: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:43:19,418 [ours.py] => LoRA 10: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:43:19,418 [ours.py] => LoRA 11: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:43:19,419 [ours.py] => LoRA 12: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:43:19,419 [ours.py] => LoRA 13: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:43:19,420 [ours.py] => LoRA 14: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:43:19,420 [ours.py] => LoRA 15: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:43:19,421 [ours.py] => LoRA 16: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:43:19,421 [ours.py] => LoRA 17: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:43:19,422 [ours.py] => LoRA 18: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:43:19,422 [ours.py] => LoRA 19: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:43:19,423 [ours.py] => LoRA 20: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:43:19,423 [ours.py] => LoRA 21: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:43:19,424 [ours.py] => LoRA 22: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:43:19,424 [ours.py] => LoRA 23: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:43:19,425 [ours.py] => LoRA 24: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:43:19,425 [ours.py] => LoRA 25: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:43:19,426 [ours.py] => LoRA 26: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:43:19,426 [ours.py] => LoRA 27: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:43:19,427 [ours.py] => LoRA 28: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:43:19,427 [ours.py] => LoRA 29: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:43:19,428 [ours.py] => LoRA 30: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:43:19,428 [ours.py] => LoRA 31: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:43:19,429 [ours.py] => LoRA 32: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:43:19,429 [ours.py] => LoRA 33: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:43:19,430 [ours.py] => LoRA 34: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:43:19,430 [ours.py] => LoRA 35: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:43:19,431 [ours.py] => LoRA 36: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:43:19,431 [ours.py] => LoRA 37: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:43:19,432 [ours.py] => LoRA 38: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:43:19,432 [ours.py] => LoRA 39: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:43:19,432 [ours.py] => LoRA 40: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:43:19,433 [ours.py] => LoRA 41: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:43:19,433 [ours.py] => LoRA 42: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:43:19,434 [ours.py] => LoRA 43: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:43:19,434 [ours.py] => LoRA 44: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:43:19,435 [ours.py] => LoRA 45: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:43:19,435 [ours.py] => LoRA 46: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:43:19,436 [ours.py] => LoRA 47: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:43:19,436 [ours.py] => Overall LoRA Compression: 0.062 (294912/4718592 parameters)
+2025-10-23 20:43:24,709 [ours.py] => Task correct: 57.79816513761468
+2025-10-23 20:43:24,709 [ours.py] => Task acc: 48.62385321100918
+2025-10-23 20:43:25,686 [trainer.py] => No NME accuracy.
+2025-10-23 20:43:25,687 [trainer.py] => CNN: {'total': 32.11, 'task1_0-2': 43.59, 'task2_3-5': 42.86, 'task3_6-8': 12.9, 'task4_9-11': 20.0, 'task5_12-14': 16.67, 'old': 33.01, 'new': 16.67, 'old_to_new_err': 1.94, 'new_to_old_err': 83.33, 'per_class': {'0': {'precision': 0.0, 'recall': 0.0, 'f1-score': 0.0, 'support': 9.0}, '1': {'precision': 0.64, 'recall': 0.6153846153846154, 'f1-score': 0.6274509803921569, 'support': 26.0}, '2': {'precision': 0.125, 'recall': 0.25, 'f1-score': 0.16666666666666666, 'support': 4.0}, '3': {'precision': 0.0, 'recall': 0.0, 'f1-score': 0.0, 'support': 6.0}, '4': {'precision': 0.10869565217391304, 'recall': 0.5555555555555556, 'f1-score': 0.18181818181818182, 'support': 9.0}, '5': {'precision': 0.3888888888888889, 'recall': 0.5384615384615384, 'f1-score': 0.45161290322580644, 'support': 13.0}, '6': {'precision': 0.8, 'recall': 0.4, 'f1-score': 0.5333333333333333, 'support': 10.0}, '7': {'precision': 0.0, 'recall': 0.0, 'f1-score': 0.0, 'support': 16.0}, '8': {'precision': 0.0, 'recall': 0.0, 'f1-score': 0.0, 'support': 5.0}, '9': {'precision': 0.5, 'recall': 1.0, 'f1-score': 0.6666666666666666, 'support': 1.0}, '10': {'precision': 0.0, 'recall': 0.0, 'f1-score': 0.0, 'support': 3.0}, '11': {'precision': 0.0, 'recall': 0.0, 'f1-score': 0.0, 'support': 1.0}, '12': {'precision': 0.3333333333333333, 'recall': 1.0, 'f1-score': 0.5, 'support': 1.0}, '13': {'precision': 0.0, 'recall': 0.0, 'f1-score': 0.0, 'support': 2.0}, '14': {'precision': 0.0, 'recall': 0.0, 'f1-score': 0.0, 'support': 3.0}, 'accuracy': 0.3211009174311927, 'macro avg': {'precision': 0.19306119162640903, 'recall': 0.2906267806267806, 'f1-score': 0.2085032488068541, 'support': 109.0}, 'weighted avg': {'precision': 0.293643575765634, 'recall': 0.3211009174311927, 'f1-score': 0.2842910416069896, 'support': 109.0}}, 'confusion_matrix': array([[ 0,  5,  1,  0,  2,  0,  0,  0,  1,  0,  0,  0,  0,  0,  0],
+       [ 0, 16,  5,  0,  3,  1,  0,  0,  0,  1,  0,  0,  0,  0,  0],
+       [ 0,  3,  1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
+       [ 0,  0,  0,  0,  4,  1,  0,  0,  0,  0,  0,  0,  1,  0,  0],
+       [ 0,  1,  0,  0,  5,  3,  0,  0,  0,  0,  0,  0,  0,  0,  0],
+       [ 0,  0,  1,  0,  4,  7,  0,  0,  0,  0,  0,  0,  1,  0,  0],
+       [ 0,  0,  0,  0,  6,  0,  4,  0,  0,  0,  0,  0,  0,  0,  0],
+       [ 0,  0,  0,  0, 13,  2,  0,  0,  1,  0,  0,  0,  0,  0,  0],
+       [ 0,  0,  0,  0,  3,  1,  1,  0,  0,  0,  0,  0,  0,  0,  0],
+       [ 0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  0,  0,  0,  0,  0],
+       [ 0,  0,  0,  0,  2,  1,  0,  0,  0,  0,  0,  0,  0,  0,  0],
+       [ 0,  0,  0,  0,  0,  1,  0,  0,  0,  0,  0,  0,  0,  0,  0],
+       [ 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  0,  0],
+       [ 0,  0,  0,  0,  1,  1,  0,  0,  0,  0,  0,  0,  0,  0,  0],
+       [ 0,  0,  0,  0,  3,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0]])}
+2025-10-23 20:43:25,687 [trainer.py] => CNN grouped: {'total': 54.13, 'task1_0-2': 54.13, 'task2_3-5': 0.0, 'task3_6-8': 0.0, 'task4_9-11': 0.0, 'task5_12-14': 0.0, 'old': 54.13, 'new': 0, 'old_to_new_err': 0.0, 'per_class': {'0': {'precision': 0.7, 'recall': 0.25925925925925924, 'f1-score': 0.3783783783783784, 'support': 27.0}, '1': {'precision': 0.5774647887323944, 'recall': 0.7321428571428571, 'f1-score': 0.6456692913385826, 'support': 56.0}, '2': {'precision': 0.39285714285714285, 'recall': 0.4230769230769231, 'f1-score': 0.4074074074074074, 'support': 26.0}, 'accuracy': 0.5412844036697247, 'macro avg': {'precision': 0.5567739771965123, 'recall': 0.4714930131596798, 'f1-score': 0.47715169237478944, 'support': 109.0}, 'weighted avg': {'precision': 0.5637826961770624, 'recall': 0.5412844036697247, 'f1-score': 0.5226265057226555, 'support': 109.0}}, 'confusion_matrix': array([[ 7, 17,  3],
+       [ 1, 41, 14],
+       [ 2, 13, 11]])}
+2025-10-23 20:43:25,687 [trainer.py] => CNN top1 curve: [53.85, 52.24, 54.08, 54.37, 54.13]
+2025-10-23 20:43:25,687 [trainer.py] => Average Accuracy (CNN): 53.734 
+
+2025-10-23 20:43:25,690 [trainer.py] => All params: 114556519
+2025-10-23 20:43:25,692 [trainer.py] => Trainable params: 4721712
+2025-10-23 20:43:25,693 [ours.py] => Learning on 15-18
+2025-10-23 20:43:27,146 [ours.py] => Task 5, Epoch 1/20 => Train_Loss 3.514, Train_Acc 4.00%, Val_Loss 3.514, Val_Acc 4.00%, Best_Acc 0.00%, LR 2.98e-02
+2025-10-23 20:43:28,628 [ours.py] => Task 5, Epoch 2/20 => Train_Loss 3.135, Train_Acc 76.00%, Val_Loss 3.135, Val_Acc 76.00%, Best_Acc 0.00%, LR 2.93e-02
+2025-10-23 20:43:30,095 [ours.py] => Task 5, Epoch 3/20 => Train_Loss 3.060, Train_Acc 76.00%, Val_Loss 3.060, Val_Acc 76.00%, Best_Acc 0.00%, LR 2.84e-02
+2025-10-23 20:43:31,850 [ours.py] => Task 5, Epoch 4/20 => Train_Loss 3.006, Train_Acc 76.00%, Val_Loss 3.006, Val_Acc 76.00%, Best_Acc 0.00%, LR 2.71e-02
+2025-10-23 20:43:33,656 [ours.py] => Task 5, Epoch 5/20 => Train_Loss 2.965, Train_Acc 76.00%, Val_Loss 2.965, Val_Acc 76.00%, Best_Acc 0.00%, LR 2.56e-02
+2025-10-23 20:43:35,136 [ours.py] => Task 5, Epoch 6/20 => Train_Loss 2.926, Train_Acc 76.00%, Val_Loss 2.926, Val_Acc 76.00%, Best_Acc 0.00%, LR 2.38e-02
+2025-10-23 20:43:36,630 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_5.pth
+2025-10-23 20:43:36,949 [ours.py] => Task 5, Epoch 7/20 => Train_Loss 3.211, Train_Acc 76.00%, Val_Loss 3.211, Val_Acc 76.00%, Best_Acc 76.00%, LR 2.18e-02
+2025-10-23 20:43:38,557 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_5.pth
+2025-10-23 20:43:39,064 [ours.py] => Task 5, Epoch 8/20 => Train_Loss 3.210, Train_Acc 76.00%, Val_Loss 3.210, Val_Acc 76.00%, Best_Acc 76.00%, LR 1.96e-02
+2025-10-23 20:43:41,289 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_5.pth
+2025-10-23 20:43:41,742 [ours.py] => Task 5, Epoch 9/20 => Train_Loss 3.199, Train_Acc 76.00%, Val_Loss 3.199, Val_Acc 76.00%, Best_Acc 76.00%, LR 1.73e-02
+2025-10-23 20:43:43,388 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_5.pth
+2025-10-23 20:43:43,876 [ours.py] => Task 5, Epoch 10/20 => Train_Loss 3.136, Train_Acc 76.00%, Val_Loss 3.136, Val_Acc 76.00%, Best_Acc 76.00%, LR 1.50e-02
+2025-10-23 20:43:45,396 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_5.pth
+2025-10-23 20:43:45,830 [ours.py] => Task 5, Epoch 11/20 => Train_Loss 3.110, Train_Acc 76.00%, Val_Loss 3.110, Val_Acc 76.00%, Best_Acc 76.00%, LR 1.27e-02
+2025-10-23 20:43:47,317 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_5.pth
+2025-10-23 20:43:47,748 [ours.py] => Task 5, Epoch 12/20 => Train_Loss 3.079, Train_Acc 76.00%, Val_Loss 3.079, Val_Acc 76.00%, Best_Acc 76.00%, LR 1.04e-02
+2025-10-23 20:43:49,380 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_5.pth
+2025-10-23 20:43:49,815 [ours.py] => Task 5, Epoch 13/20 => Train_Loss 3.061, Train_Acc 76.00%, Val_Loss 3.061, Val_Acc 76.00%, Best_Acc 76.00%, LR 8.19e-03
+2025-10-23 20:43:51,310 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_5.pth
+2025-10-23 20:43:51,750 [ours.py] => Task 5, Epoch 14/20 => Train_Loss 3.047, Train_Acc 76.00%, Val_Loss 3.047, Val_Acc 76.00%, Best_Acc 76.00%, LR 6.18e-03
+2025-10-23 20:43:53,241 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_5.pth
+2025-10-23 20:43:53,675 [ours.py] => Task 5, Epoch 15/20 => Train_Loss 3.036, Train_Acc 76.00%, Val_Loss 3.036, Val_Acc 76.00%, Best_Acc 76.00%, LR 4.39e-03
+2025-10-23 20:43:55,204 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_5.pth
+2025-10-23 20:43:55,641 [ours.py] => Task 5, Epoch 16/20 => Train_Loss 3.029, Train_Acc 76.00%, Val_Loss 3.029, Val_Acc 76.00%, Best_Acc 76.00%, LR 2.86e-03
+2025-10-23 20:43:57,109 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_5.pth
+2025-10-23 20:43:57,551 [ours.py] => Task 5, Epoch 17/20 => Train_Loss 3.024, Train_Acc 76.00%, Val_Loss 3.024, Val_Acc 76.00%, Best_Acc 76.00%, LR 1.63e-03
+2025-10-23 20:43:59,444 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_5.pth
+2025-10-23 20:43:59,884 [ours.py] => Task 5, Epoch 18/20 => Train_Loss 3.021, Train_Acc 76.00%, Val_Loss 3.021, Val_Acc 76.00%, Best_Acc 76.00%, LR 7.34e-04
+2025-10-23 20:44:01,391 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_5.pth
+2025-10-23 20:44:01,828 [ours.py] => Task 5, Epoch 19/20 => Train_Loss 3.020, Train_Acc 76.00%, Val_Loss 3.020, Val_Acc 76.00%, Best_Acc 76.00%, LR 1.85e-04
+2025-10-23 20:44:03,327 [ours.py] => Task 5, Epoch 20/20 => Train_Loss 3.021, Train_Acc 76.00%, Val_Loss 3.021, Val_Acc 76.00%, Best_Acc 76.00%, LR 0.00e+00
+2025-10-23 20:44:03,596 [ours.py] => Loaded best model from epoch 18
+2025-10-23 20:44:03,599 [ours.py] => LoRA 0: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:44:03,599 [ours.py] => LoRA 1: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:44:03,600 [ours.py] => LoRA 2: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:44:03,600 [ours.py] => LoRA 3: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:44:03,601 [ours.py] => LoRA 4: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:44:03,601 [ours.py] => LoRA 5: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:44:03,602 [ours.py] => LoRA 6: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:44:03,602 [ours.py] => LoRA 7: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:44:03,603 [ours.py] => LoRA 8: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:44:03,603 [ours.py] => LoRA 9: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:44:03,604 [ours.py] => LoRA 10: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:44:03,604 [ours.py] => LoRA 11: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:44:03,605 [ours.py] => LoRA 12: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:44:03,605 [ours.py] => LoRA 13: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:44:03,606 [ours.py] => LoRA 14: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:44:03,606 [ours.py] => LoRA 15: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:44:03,607 [ours.py] => LoRA 16: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:44:03,607 [ours.py] => LoRA 17: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:44:03,608 [ours.py] => LoRA 18: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:44:03,608 [ours.py] => LoRA 19: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:44:03,609 [ours.py] => LoRA 20: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:44:03,609 [ours.py] => LoRA 21: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:44:03,610 [ours.py] => LoRA 22: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:44:03,610 [ours.py] => LoRA 23: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:44:03,610 [ours.py] => LoRA 24: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:44:03,611 [ours.py] => LoRA 25: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:44:03,611 [ours.py] => LoRA 26: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:44:03,612 [ours.py] => LoRA 27: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:44:03,612 [ours.py] => LoRA 28: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:44:03,613 [ours.py] => LoRA 29: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:44:03,613 [ours.py] => LoRA 30: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:44:03,614 [ours.py] => LoRA 31: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:44:03,614 [ours.py] => LoRA 32: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:44:03,615 [ours.py] => LoRA 33: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:44:03,615 [ours.py] => LoRA 34: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:44:03,616 [ours.py] => LoRA 35: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:44:03,616 [ours.py] => LoRA 36: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:44:03,617 [ours.py] => LoRA 37: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:44:03,617 [ours.py] => LoRA 38: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:44:03,618 [ours.py] => LoRA 39: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:44:03,618 [ours.py] => LoRA 40: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:44:03,619 [ours.py] => LoRA 41: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:44:03,619 [ours.py] => LoRA 42: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:44:03,620 [ours.py] => LoRA 43: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:44:03,620 [ours.py] => LoRA 44: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:44:03,621 [ours.py] => LoRA 45: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:44:03,621 [ours.py] => LoRA 46: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:44:03,622 [ours.py] => LoRA 47: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:44:03,622 [ours.py] => Overall LoRA Compression: 0.062 (294912/4718592 parameters)
+2025-10-23 20:44:10,954 [ours.py] => Task correct: 46.34146341463415
+2025-10-23 20:44:10,955 [ours.py] => Task acc: 47.15447154471545
+2025-10-23 20:44:12,184 [trainer.py] => No NME accuracy.
+2025-10-23 20:44:12,184 [trainer.py] => CNN: {'total': 24.39, 'task1_0-2': 28.21, 'task2_3-5': 42.86, 'task3_6-8': 12.9, 'task4_9-11': 20.0, 'task5_12-14': 16.67, 'task6_15-17': 7.14, 'old': 26.61, 'new': 7.14, 'old_to_new_err': 8.26, 'new_to_old_err': 78.57, 'per_class': {'0': {'precision': 0.0, 'recall': 0.0, 'f1-score': 0.0, 'support': 9.0}, '1': {'precision': 0.4, 'recall': 0.38461538461538464, 'f1-score': 0.39215686274509803, 'support': 26.0}, '2': {'precision': 0.125, 'recall': 0.25, 'f1-score': 0.16666666666666666, 'support': 4.0}, '3': {'precision': 0.0, 'recall': 0.0, 'f1-score': 0.0, 'support': 6.0}, '4': {'precision': 0.10638297872340426, 'recall': 0.5555555555555556, 'f1-score': 0.17857142857142858, 'support': 9.0}, '5': {'precision': 0.3684210526315789, 'recall': 0.5384615384615384, 'f1-score': 0.4375, 'support': 13.0}, '6': {'precision': 0.8, 'recall': 0.4, 'f1-score': 0.5333333333333333, 'support': 10.0}, '7': {'precision': 0.0, 'recall': 0.0, 'f1-score': 0.0, 'support': 16.0}, '8': {'precision': 0.0, 'recall': 0.0, 'f1-score': 0.0, 'support': 5.0}, '9': {'precision': 0.5, 'recall': 1.0, 'f1-score': 0.6666666666666666, 'support': 1.0}, '10': {'precision': 0.0, 'recall': 0.0, 'f1-score': 0.0, 'support': 3.0}, '11': {'precision': 0.0, 'recall': 0.0, 'f1-score': 0.0, 'support': 1.0}, '12': {'precision': 0.3333333333333333, 'recall': 1.0, 'f1-score': 0.5, 'support': 1.0}, '13': {'precision': 0.0, 'recall': 0.0, 'f1-score': 0.0, 'support': 2.0}, '14': {'precision': 0.0, 'recall': 0.0, 'f1-score': 0.0, 'support': 3.0}, '15': {'precision': 0.0, 'recall': 0.0, 'f1-score': 0.0, 'support': 1.0}, '16': {'precision': 0.2, 'recall': 0.1, 'f1-score': 0.13333333333333333, 'support': 10.0}, '17': {'precision': 0.0, 'recall': 0.0, 'f1-score': 0.0, 'support': 3.0}, 'accuracy': 0.24390243902439024, 'macro avg': {'precision': 0.15739652026046203, 'recall': 0.23492402659069325, 'f1-score': 0.16712379396202925, 'support': 123.0}, 'weighted avg': {'precision': 0.22341669777280082, 'recall': 0.24390243902439024, 'f1-score': 0.21130667714240164, 'support': 123.0}}, 'confusion_matrix': array([[ 0,  4,  1,  0,  2,  0,  0,  0,  1,  0,  0,  0,  0,  0,  0,  1,
+         0,  0],
+       [ 0, 10,  5,  0,  3,  1,  0,  0,  0,  1,  0,  0,  0,  0,  0,  2,
+         3,  1],
+       [ 0,  1,  1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1,
+         1,  0],
+       [ 0,  0,  0,  0,  4,  1,  0,  0,  0,  0,  0,  0,  1,  0,  0,  0,
+         0,  0],
+       [ 0,  1,  0,  0,  5,  3,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+         0,  0],
+       [ 0,  0,  1,  0,  4,  7,  0,  0,  0,  0,  0,  0,  1,  0,  0,  0,
+         0,  0],
+       [ 0,  0,  0,  0,  6,  0,  4,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+         0,  0],
+       [ 0,  0,  0,  0, 13,  2,  0,  0,  1,  0,  0,  0,  0,  0,  0,  0,
+         0,  0],
+       [ 0,  0,  0,  0,  3,  1,  1,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+         0,  0],
+       [ 0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  0,  0,  0,  0,  0,  0,
+         0,  0],
+       [ 0,  0,  0,  0,  2,  1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+         0,  0],
+       [ 0,  0,  0,  0,  0,  1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+         0,  0],
+       [ 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  0,  0,  0,
+         0,  0],
+       [ 0,  0,  0,  0,  1,  1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+         0,  0],
+       [ 0,  0,  0,  0,  3,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+         0,  0],
+       [ 0,  1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+         0,  0],
+       [ 0,  6,  0,  0,  1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  2,
+         1,  0],
+       [ 0,  2,  0,  0,  0,  1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+         0,  0]])}
+2025-10-23 20:44:12,184 [trainer.py] => CNN grouped: {'total': 53.66, 'task1_0-2': 53.66, 'task2_3-5': 0.0, 'task3_6-8': 0.0, 'task4_9-11': 0.0, 'task5_12-14': 0.0, 'task6_15-17': 0.0, 'old': 53.66, 'new': 0, 'old_to_new_err': 0.0, 'per_class': {'0': {'precision': 0.5, 'recall': 0.2857142857142857, 'f1-score': 0.36363636363636365, 'support': 28.0}, '1': {'precision': 0.5974025974025974, 'recall': 0.696969696969697, 'f1-score': 0.6433566433566433, 'support': 66.0}, '2': {'precision': 0.4, 'recall': 0.41379310344827586, 'f1-score': 0.4067796610169492, 'support': 29.0}, 'accuracy': 0.5365853658536586, 'macro avg': {'precision': 0.4991341991341991, 'recall': 0.4654923620440862, 'f1-score': 0.47125755600331876, 'support': 123.0}, 'weighted avg': {'precision': 0.5286875725900116, 'recall': 0.5365853658536586, 'f1-score': 0.5239021692101478, 'support': 123.0}}, 'confusion_matrix': array([[ 8, 17,  3],
+       [ 5, 46, 15],
+       [ 3, 14, 12]])}
+2025-10-23 20:44:12,184 [trainer.py] => CNN top1 curve: [53.85, 52.24, 54.08, 54.37, 54.13, 53.66]
+2025-10-23 20:44:12,185 [trainer.py] => Average Accuracy (CNN): 53.72166666666667 
+
+2025-10-23 20:44:12,188 [trainer.py] => All params: 119308136
+2025-10-23 20:44:12,190 [trainer.py] => Trainable params: 4721712
+2025-10-23 20:44:12,192 [ours.py] => Learning on 18-21
+2025-10-23 20:44:14,285 [ours.py] => Task 6, Epoch 1/20 => Train_Loss 3.506, Train_Acc 20.97%, Val_Loss 3.506, Val_Acc 20.97%, Best_Acc 0.00%, LR 2.98e-02
+2025-10-23 20:44:17,240 [ours.py] => Task 6, Epoch 2/20 => Train_Loss 3.394, Train_Acc 51.61%, Val_Loss 3.394, Val_Acc 51.61%, Best_Acc 0.00%, LR 2.93e-02
+2025-10-23 20:44:19,373 [ours.py] => Task 6, Epoch 3/20 => Train_Loss 3.343, Train_Acc 51.61%, Val_Loss 3.343, Val_Acc 51.61%, Best_Acc 0.00%, LR 2.84e-02
+2025-10-23 20:44:21,493 [ours.py] => Task 6, Epoch 4/20 => Train_Loss 3.304, Train_Acc 51.61%, Val_Loss 3.304, Val_Acc 51.61%, Best_Acc 0.00%, LR 2.71e-02
+2025-10-23 20:44:23,654 [ours.py] => Task 6, Epoch 5/20 => Train_Loss 3.261, Train_Acc 51.61%, Val_Loss 3.261, Val_Acc 51.61%, Best_Acc 0.00%, LR 2.56e-02
+2025-10-23 20:44:25,772 [ours.py] => Task 6, Epoch 6/20 => Train_Loss 3.215, Train_Acc 51.61%, Val_Loss 3.215, Val_Acc 51.61%, Best_Acc 0.00%, LR 2.38e-02
+2025-10-23 20:44:27,906 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_6.pth
+2025-10-23 20:44:28,224 [ours.py] => Task 6, Epoch 7/20 => Train_Loss 3.615, Train_Acc 51.61%, Val_Loss 3.615, Val_Acc 51.61%, Best_Acc 51.61%, LR 2.18e-02
+2025-10-23 20:44:30,343 [ours.py] => Task 6, Epoch 8/20 => Train_Loss 3.780, Train_Acc 51.61%, Val_Loss 3.780, Val_Acc 51.61%, Best_Acc 51.61%, LR 1.96e-02
+2025-10-23 20:44:32,472 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_6.pth
+2025-10-23 20:44:32,922 [ours.py] => Task 6, Epoch 9/20 => Train_Loss 3.523, Train_Acc 51.61%, Val_Loss 3.523, Val_Acc 51.61%, Best_Acc 51.61%, LR 1.73e-02
+2025-10-23 20:44:35,048 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_6.pth
+2025-10-23 20:44:35,503 [ours.py] => Task 6, Epoch 10/20 => Train_Loss 3.434, Train_Acc 51.61%, Val_Loss 3.434, Val_Acc 51.61%, Best_Acc 51.61%, LR 1.50e-02
+2025-10-23 20:44:37,645 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_6.pth
+2025-10-23 20:44:38,094 [ours.py] => Task 6, Epoch 11/20 => Train_Loss 3.401, Train_Acc 51.61%, Val_Loss 3.401, Val_Acc 51.61%, Best_Acc 51.61%, LR 1.27e-02
+2025-10-23 20:44:40,243 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_6.pth
+2025-10-23 20:44:40,690 [ours.py] => Task 6, Epoch 12/20 => Train_Loss 3.380, Train_Acc 51.61%, Val_Loss 3.380, Val_Acc 51.61%, Best_Acc 51.61%, LR 1.04e-02
+2025-10-23 20:44:42,824 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_6.pth
+2025-10-23 20:44:43,269 [ours.py] => Task 6, Epoch 13/20 => Train_Loss 3.361, Train_Acc 51.61%, Val_Loss 3.361, Val_Acc 51.61%, Best_Acc 51.61%, LR 8.19e-03
+2025-10-23 20:44:45,448 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_6.pth
+2025-10-23 20:44:45,900 [ours.py] => Task 6, Epoch 14/20 => Train_Loss 3.345, Train_Acc 51.61%, Val_Loss 3.345, Val_Acc 51.61%, Best_Acc 51.61%, LR 6.18e-03
+2025-10-23 20:44:48,019 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_6.pth
+2025-10-23 20:44:48,472 [ours.py] => Task 6, Epoch 15/20 => Train_Loss 3.332, Train_Acc 51.61%, Val_Loss 3.332, Val_Acc 51.61%, Best_Acc 51.61%, LR 4.39e-03
+2025-10-23 20:44:50,616 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_6.pth
+2025-10-23 20:44:51,073 [ours.py] => Task 6, Epoch 16/20 => Train_Loss 3.322, Train_Acc 51.61%, Val_Loss 3.322, Val_Acc 51.61%, Best_Acc 51.61%, LR 2.86e-03
+2025-10-23 20:44:53,218 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_6.pth
+2025-10-23 20:44:53,672 [ours.py] => Task 6, Epoch 17/20 => Train_Loss 3.314, Train_Acc 51.61%, Val_Loss 3.314, Val_Acc 51.61%, Best_Acc 51.61%, LR 1.63e-03
+2025-10-23 20:44:55,821 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_6.pth
+2025-10-23 20:44:56,273 [ours.py] => Task 6, Epoch 18/20 => Train_Loss 3.309, Train_Acc 51.61%, Val_Loss 3.309, Val_Acc 51.61%, Best_Acc 51.61%, LR 7.34e-04
+2025-10-23 20:44:58,420 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_6.pth
+2025-10-23 20:44:58,764 [ours.py] => Task 6, Epoch 19/20 => Train_Loss 3.307, Train_Acc 51.61%, Val_Loss 3.307, Val_Acc 51.61%, Best_Acc 51.61%, LR 1.85e-04
+2025-10-23 20:45:00,906 [ours.py] => Save best model to logs/ours/CystX/0/3/v4reproduce_t1_depth_12_5_b_90_cosine/best_model_task_6.pth
+2025-10-23 20:45:01,364 [ours.py] => Task 6, Epoch 20/20 => Train_Loss 3.307, Train_Acc 51.61%, Val_Loss 3.307, Val_Acc 51.61%, Best_Acc 51.61%, LR 0.00e+00
+2025-10-23 20:45:01,636 [ours.py] => Loaded best model from epoch 19
+2025-10-23 20:45:01,639 [ours.py] => LoRA 0: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:45:01,640 [ours.py] => LoRA 1: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:45:01,640 [ours.py] => LoRA 2: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:45:01,641 [ours.py] => LoRA 3: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:45:01,641 [ours.py] => LoRA 4: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:45:01,642 [ours.py] => LoRA 5: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:45:01,642 [ours.py] => LoRA 6: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:45:01,643 [ours.py] => LoRA 7: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:45:01,643 [ours.py] => LoRA 8: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:45:01,644 [ours.py] => LoRA 9: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:45:01,644 [ours.py] => LoRA 10: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:45:01,644 [ours.py] => LoRA 11: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:45:01,645 [ours.py] => LoRA 12: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:45:01,645 [ours.py] => LoRA 13: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:45:01,646 [ours.py] => LoRA 14: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:45:01,646 [ours.py] => LoRA 15: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:45:01,647 [ours.py] => LoRA 16: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:45:01,647 [ours.py] => LoRA 17: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:45:01,648 [ours.py] => LoRA 18: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:45:01,648 [ours.py] => LoRA 19: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:45:01,649 [ours.py] => LoRA 20: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:45:01,649 [ours.py] => LoRA 21: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:45:01,650 [ours.py] => LoRA 22: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:45:01,650 [ours.py] => LoRA 23: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:45:01,651 [ours.py] => LoRA 24: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:45:01,651 [ours.py] => LoRA 25: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:45:01,652 [ours.py] => LoRA 26: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:45:01,652 [ours.py] => LoRA 27: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:45:01,653 [ours.py] => LoRA 28: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:45:01,653 [ours.py] => LoRA 29: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:45:01,654 [ours.py] => LoRA 30: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:45:01,654 [ours.py] => LoRA 31: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:45:01,655 [ours.py] => LoRA 32: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:45:01,655 [ours.py] => LoRA 33: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:45:01,656 [ours.py] => LoRA 34: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:45:01,656 [ours.py] => LoRA 35: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:45:01,657 [ours.py] => LoRA 36: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:45:01,657 [ours.py] => LoRA 37: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:45:01,658 [ours.py] => LoRA 38: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:45:01,658 [ours.py] => LoRA 39: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:45:01,659 [ours.py] => LoRA 40: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:45:01,659 [ours.py] => LoRA 41: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:45:01,659 [ours.py] => LoRA 42: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:45:01,660 [ours.py] => LoRA 43: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:45:01,660 [ours.py] => LoRA 44: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:45:01,661 [ours.py] => LoRA 45: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:45:01,661 [ours.py] => LoRA 46: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:45:01,662 [ours.py] => LoRA 47: Effective Rank 4/64, Params 6144/98304
+2025-10-23 20:45:01,662 [ours.py] => Overall LoRA Compression: 0.062 (294912/4718592 parameters)
+2025-10-23 20:45:13,479 [ours.py] => Task correct: 41.007194244604314
+2025-10-23 20:45:13,479 [ours.py] => Task acc: 48.201438848920866
+2025-10-23 20:45:14,803 [trainer.py] => No NME accuracy.
+2025-10-23 20:45:14,803 [trainer.py] => CNN: {'total': 21.58, 'task1_0-2': 28.21, 'task2_3-5': 42.86, 'task3_6-8': 12.9, 'task4_9-11': 20.0, 'task5_12-14': 16.67, 'task6_15-17': 7.14, 'task7_18-20': 0.0, 'old': 24.39, 'new': 0.0, 'old_to_new_err': 0.0, 'new_to_old_err': 100.0, 'per_class': {'0': {'precision': 0.0, 'recall': 0.0, 'f1-score': 0.0, 'support': 9.0}, '1': {'precision': 0.3125, 'recall': 0.38461538461538464, 'f1-score': 0.3448275862068966, 'support': 26.0}, '2': {'precision': 0.1111111111111111, 'recall': 0.25, 'f1-score': 0.15384615384615385, 'support': 4.0}, '3': {'precision': 0.0, 'recall': 0.0, 'f1-score': 0.0, 'support': 6.0}, '4': {'precision': 0.09433962264150944, 'recall': 0.5555555555555556, 'f1-score': 0.16129032258064516, 'support': 9.0}, '5': {'precision': 0.35, 'recall': 0.5384615384615384, 'f1-score': 0.42424242424242425, 'support': 13.0}, '6': {'precision': 0.8, 'recall': 0.4, 'f1-score': 0.5333333333333333, 'support': 10.0}, '7': {'precision': 0.0, 'recall': 0.0, 'f1-score': 0.0, 'support': 16.0}, '8': {'precision': 0.0, 'recall': 0.0, 'f1-score': 0.0, 'support': 5.0}, '9': {'precision': 0.5, 'recall': 1.0, 'f1-score': 0.6666666666666666, 'support': 1.0}, '10': {'precision': 0.0, 'recall': 0.0, 'f1-score': 0.0, 'support': 3.0}, '11': {'precision': 0.0, 'recall': 0.0, 'f1-score': 0.0, 'support': 1.0}, '12': {'precision': 0.3333333333333333, 'recall': 1.0, 'f1-score': 0.5, 'support': 1.0}, '13': {'precision': 0.0, 'recall': 0.0, 'f1-score': 0.0, 'support': 2.0}, '14': {'precision': 0.0, 'recall': 0.0, 'f1-score': 0.0, 'support': 3.0}, '15': {'precision': 0.0, 'recall': 0.0, 'f1-score': 0.0, 'support': 1.0}, '16': {'precision': 0.16666666666666666, 'recall': 0.1, 'f1-score': 0.125, 'support': 10.0}, '17': {'precision': 0.0, 'recall': 0.0, 'f1-score': 0.0, 'support': 3.0}, '18': {'precision': 0.0, 'recall': 0.0, 'f1-score': 0.0, 'support': 8.0}, '19': {'precision': 0.0, 'recall': 0.0, 'f1-score': 0.0, 'support': 5.0}, '20': {'precision': 0.0, 'recall': 0.0, 'f1-score': 0.0, 'support': 3.0}, 'accuracy': 0.2158273381294964, 'macro avg': {'precision': 0.12704527303583907, 'recall': 0.20136345136345138, 'f1-score': 0.13853364223219616, 'support': 139.0}, 'weighted avg': {'precision': 0.17603238164185633, 'recall': 0.2158273381294964, 'f1-score': 0.17480335449741904, 'support': 139.0}}, 'confusion_matrix': array([[ 0,  4,  1,  0,  2,  0,  0,  0,  1,  0,  0,  0,  0,  0,  0,  1,
+         0,  0,  0,  0,  0],
+       [ 0, 10,  5,  0,  3,  1,  0,  0,  0,  1,  0,  0,  0,  0,  0,  2,
+         3,  1,  0,  0,  0],
+       [ 0,  1,  1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1,
+         1,  0,  0,  0,  0],
+       [ 0,  0,  0,  0,  4,  1,  0,  0,  0,  0,  0,  0,  1,  0,  0,  0,
+         0,  0,  0,  0,  0],
+       [ 0,  1,  0,  0,  5,  3,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+         0,  0,  0,  0,  0],
+       [ 0,  0,  1,  0,  4,  7,  0,  0,  0,  0,  0,  0,  1,  0,  0,  0,
+         0,  0,  0,  0,  0],
+       [ 0,  0,  0,  0,  6,  0,  4,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+         0,  0,  0,  0,  0],
+       [ 0,  0,  0,  0, 13,  2,  0,  0,  1,  0,  0,  0,  0,  0,  0,  0,
+         0,  0,  0,  0,  0],
+       [ 0,  0,  0,  0,  3,  1,  1,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+         0,  0,  0,  0,  0],
+       [ 0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  0,  0,  0,  0,  0,  0,
+         0,  0,  0,  0,  0],
+       [ 0,  0,  0,  0,  2,  1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+         0,  0,  0,  0,  0],
+       [ 0,  0,  0,  0,  0,  1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+         0,  0,  0,  0,  0],
+       [ 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  0,  0,  0,
+         0,  0,  0,  0,  0],
+       [ 0,  0,  0,  0,  1,  1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+         0,  0,  0,  0,  0],
+       [ 0,  0,  0,  0,  3,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+         0,  0,  0,  0,  0],
+       [ 0,  1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+         0,  0,  0,  0,  0],
+       [ 0,  6,  0,  0,  1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  2,
+         1,  0,  0,  0,  0],
+       [ 0,  2,  0,  0,  0,  1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+         0,  0,  0,  0,  0],
+       [ 0,  2,  0,  0,  5,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+         1,  0,  0,  0,  0],
+       [ 0,  4,  0,  0,  0,  1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+         0,  0,  0,  0,  0],
+       [ 0,  1,  1,  0,  1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+         0,  0,  0,  0,  0]])}
+2025-10-23 20:45:14,804 [trainer.py] => CNN grouped: {'total': 51.08, 'task1_0-2': 51.08, 'task2_3-5': 0.0, 'task3_6-8': 0.0, 'task4_9-11': 0.0, 'task5_12-14': 0.0, 'task6_15-17': 0.0, 'task7_18-20': 0.0, 'old': 51.08, 'new': 0, 'old_to_new_err': 0.0, 'per_class': {'0': {'precision': 0.5, 'recall': 0.2222222222222222, 'f1-score': 0.3076923076923077, 'support': 36.0}, '1': {'precision': 0.5494505494505495, 'recall': 0.704225352112676, 'f1-score': 0.6172839506172839, 'support': 71.0}, '2': {'precision': 0.40625, 'recall': 0.40625, 'f1-score': 0.40625, 'support': 32.0}, 'accuracy': 0.5107913669064749, 'macro avg': {'precision': 0.4852335164835165, 'recall': 0.44423252477829944, 'f1-score': 0.44374208610319715, 'support': 139.0}, 'weighted avg': {'precision': 0.5036761799351728, 'recall': 0.5107913669064749, 'f1-score': 0.4885185868399297, 'support': 139.0}}, 'confusion_matrix': array([[ 8, 25,  3],
+       [ 5, 50, 16],
+       [ 3, 16, 13]])}
+2025-10-23 20:45:14,804 [trainer.py] => CNN top1 curve: [53.85, 52.24, 54.08, 54.37, 54.13, 53.66, 51.08]
+2025-10-23 20:45:14,804 [trainer.py] => Average Accuracy (CNN): 53.34428571428572 
+

@@ -134,17 +134,7 @@ For each domain:
 - Train/Test split ratio = **4:1**
 - Class distribution is preserved within each domain
 
-<!-- 整理数据集的domains以及每个domain的classes：
-    - **Skin Pathology Diagnosis**: 
-      - *PH2*:根据Parquet文件中存储的图像和description，将图像分为NV和MEL两种病变类别；
-      - *BCN*:根据csv文件的"diagnosis"字段将图像分类存放；
-      - *HAM、MSK*:在ISIC 2019 Challenge的训练集中，根据meta.csv中的"lession_id"字段筛选出HAM、MSK、BCN三个中心的样本，对于"lession_id"字段既不是nan，也不属于MSK/BCN/HAM的样本，合并到MSK中心，而后按照GroundTruth.csv中的字段将HAM、MSK的样本分类存放。
-      - *OTHER*:将ISIC 2019的测试集作为OTHER中心的样本。
-      - *derm_D7P*:首先将meta.csv中的"diagnosis"字段转化为我们设定的皮肤病变标签，而后将"derm"列对应的样本分类存放。
-      - *dermoscopic*:根据meta.csv中的"image_type"字段筛选出dermoscopic中心的样本，而后将这些样本按照gt.csv中对应的标签分类存放。
-    - **Cyst-X**: IPMN_labels_t1_total.csv中的"Patient ID"字段对应每个样本的文件名，根据其文件名前缀，将样本分为AHN、MCF等中心，而后将"risk assessment"字段作为标签，将样本分类存放。
-    - **Office-Home**: 原数据集文件夹下有四种不同风格，即四个不同的domain，已经符合我们的数据集结构。
-    **Dataset Splitting**: 对每个domain，按照分层抽样的方式，将数据集划分为训练集和测试集，训练集:测试集=4:1。 -->
+
 
 ### 4. Check structure ###
 
@@ -186,38 +176,6 @@ data/
 
 ```
 
-<!-- ```
-    Skin
-    ├── BCN
-      ├── class0
-        ├── images
-      ├── class1
-      ├── ...(other classes)
-    ├── BCN_test.txt
-    ├── BCN_train.txt
-    ├── ...(other domains)
-
-    Cyst-X
-    ├── AHN
-      ├── class0
-        ├── images
-      ├── class1
-      ├── ...(other classes)
-    ├── AHN_test.txt
-    ├── AHN_train.txt
-    ├── ...(other domains)
-
-    OfficeHome
-    ├── Art
-      ├── class0
-        ├── images
-      ├── class1
-      ├── ...(other classes)    
-    ├── Art_test.txt
-    ├── Art_train.txt
-    ├── ...(other domains)
-```   -->
-
 
 ## Getting Started
 
@@ -253,7 +211,7 @@ If you find this work useful in your research, please cite:
 
 ```bibtex
 @article{yxma_2026_CVPR,
-    author    = {},
+    author    = {Ma, Yuxi and Liu, Sujie and Yang, jing and Wang, Jiacheng and Chen, Yiping and Baptiste Magnier and Wang, Liansheng},
     title     = {DK-DDIL: Adaptive Knowledge Retention for Dynamic Domain-Incremental Learning in Medical Imaging},
     journal = {Proceedings of the Computer Vision and Pattern Recognition Conference (CVPR)},
     month     = {June},

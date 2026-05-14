@@ -191,7 +191,7 @@ class Adapter_lora(nn.Module):
         # 创建新的线性层
         new_lora_A = nn.Linear(self.n_embd, active_count, bias=False).to(self.lora_A.weight.device)
         new_lora_B = nn.Linear(active_count, self.n_embd, bias=False).to(self.lora_B.weight.device)
-        self.max_rank = active_count
+
         # 复制激活的权重
         new_lora_A.weight.data = self.lora_A.weight[self.active_mask, :].clone()
         new_lora_B.weight.data = self.lora_B.weight[:, self.active_mask].clone()
@@ -201,7 +201,7 @@ class Adapter_lora(nn.Module):
         self.lora_B = new_lora_B
          
         # 更新参数
-        # self.max_rank = active_count
+        self.max_rank = active_count
         self.rank_scores = nn.Parameter(torch.ones(self.max_rank, device=self.rank_scores.device))
         self.register_buffer('active_mask', torch.ones(self.max_rank, dtype=torch.bool))
       
@@ -227,7 +227,6 @@ class Attention_lora(nn.Module):
         self.q_proj = nn.Linear(dim, dim, bias=qkv_bias)
         self.v_proj = nn.Linear(dim, dim, bias=qkv_bias)
         self.k_proj = nn.Linear(dim, dim, bias=qkv_bias)
-
 
         self.attn_drop = nn.Dropout(attn_drop)
         self.proj = nn.Linear(dim, dim)
