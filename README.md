@@ -1,10 +1,9 @@
 # DK-DDIL: Adaptive Knowledge Retention for Dynamic Domain-Incremental Learning in Medical Imaging
 
 [![CVPR 2026](https://img.shields.io/badge/CVPR-2026-blue.svg)](https://cvpr.thecvf.com/)
-[![arXiv](https://img.shields.io/badge/arXiv-xxxx.xxxxx-b31b1b)]()
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-📄 **Paper**: [DK-DDIL: Adaptive Knowledge Retention for Dynamic Domain-Incremental Learning in Medical Imaging]()
+📄 **Paper**: [DK-DDIL: Adaptive Knowledge Retention for Dynamic Domain-Incremental Learning in Medical Imaging](./main-paper.pdf)
 
 ## Overview
 
