@@ -206,7 +206,7 @@ python main.py --config exps/officehome.json
 ```
 
 
-## Citation
+<!-- ## Citation
 
 If you find this work useful in your research, please cite:
 
@@ -219,7 +219,7 @@ If you find this work useful in your research, please cite:
     year      = {2026},
     pages     = {}
 }
-```
+``` -->
 
 ## Acknowledgments
 
